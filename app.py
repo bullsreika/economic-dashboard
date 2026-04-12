@@ -245,12 +245,13 @@ def fetch_market_data() -> dict:
 # ═══════════════════════════════════════════════════════════════
 
 RSS_FEEDS = [
-    {"name": "Reuters Business", "url": "https://www.rss.app/feeds/v1.1/tsYtWXiMnQNTAM7E.json", "category": "market"},
-    {"name": "CNBC Economy", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258", "category": "economy"},
-    {"name": "Fed News", "url": "https://www.federalreserve.gov/feeds/press_all.xml", "category": "fed"},
-    {"name": "Reuters World", "url": "https://www.rss.app/feeds/v1.1/toXBmjkzfJFiCMjr.json", "category": "geopolitics"},
+    {"name": "한국경제 경제", "url": "https://rss.hankyung.com/economy.xml", "category": "economy"},
+    {"name": "한국경제 증권", "url": "https://rss.hankyung.com/stock.xml", "category": "market"},
+    {"name": "한국경제 국제", "url": "https://rss.hankyung.com/intl.xml", "category": "geopolitics"},
+    {"name": "매일경제 경제", "url": "https://file.mk.co.kr/news/rss/rss_30100041.xml", "category": "economy"},
+    {"name": "매일경제 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "market"},
+    {"name": "매일경제 국제", "url": "https://file.mk.co.kr/news/rss/rss_30300018.xml", "category": "geopolitics"},
 ]
-
 
 def fetch_news_from_rss() -> list:
     articles = []
