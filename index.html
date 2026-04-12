@@ -190,6 +190,8 @@
   .news-item[data-cat="market"] { border-left-color: var(--green); }
   .news-item[data-cat="geopolitics"] { border-left-color: var(--red); }
   .news-item[data-cat="trade"] { border-left-color: var(--amber); }
+  .news-item[data-cat="international"] { border-left-color: var(--blue); }
+  .news-item[data-cat="domestic"] { border-left-color: var(--teal); }
 
   .news-meta {
     display: flex;
@@ -206,6 +208,8 @@
   .news-cat[data-cat="market"] { color: var(--green); background: rgba(63,185,80,0.12); }
   .news-cat[data-cat="geopolitics"] { color: var(--red); background: rgba(248,81,73,0.12); }
   .news-cat[data-cat="trade"] { color: var(--amber); background: rgba(210,153,34,0.12); }
+  .news-cat[data-cat="international"] { color: var(--blue); background: rgba(88,166,255,0.12); }
+  .news-cat[data-cat="domestic"] { color: var(--teal); background: rgba(86,212,221,0.12); }
 
   .news-source { font-size: 10px; color: var(--text3); }
   .news-title {
@@ -316,8 +320,14 @@ const MARKET_REFRESH = 30000;  // 30초마다 시세 갱신
 const NEWS_REFRESH = 3600000;  // 1시간마다 뉴스 갱신
 
 const CAT_LABELS = {
-  fed: "연준/중앙은행", economy: "경제", market: "시장",
-  geopolitics: "지정학/전쟁", trade: "무역/통상", general: "일반",
+  international: "국제",
+  domestic: "국내",
+  fed: "연준",
+  economy: "경제",
+  market: "시장",
+  geopolitics: "지정학",
+  trade: "무역",
+  general: "일반",
 };
 const CAT_COLORS = {
   fx: { dot: "#58a6ff", label: "환율" },
