@@ -245,13 +245,16 @@ def fetch_market_data() -> dict:
 # ═══════════════════════════════════════════════════════════════
 
 RSS_FEEDS = [
-    {"name": "한경 증권", "url": "https://rss.hankyung.com/stock.xml", "category": "market"},
-    {"name": "한경 국제", "url": "https://rss.hankyung.com/intl.xml", "category": "geopolitics"},
-    {"name": "한경 경제", "url": "https://rss.hankyung.com/economy.xml", "category": "economy"},
-    {"name": "매경 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "market"},
-    {"name": "매경 국제", "url": "https://file.mk.co.kr/news/rss/rss_30300018.xml", "category": "geopolitics"},
-    {"name": "연합뉴스 경제", "url": "https://www.yonhapnewstv.co.kr/category/news/economy/feed/", "category": "economy"},
-    {"name": "코인데스크코리아", "url": "https://www.coindeskkorea.com/feed", "category": "market"},
+    # 국제 (영어) - 증권/선물/암호화폐/지정학
+    {"name": "Reuters Business", "url": "https://www.rss.app/feeds/v1.1/tsYtWXiMnQNTAM7E.json", "category": "international"},
+    {"name": "CNBC Economy", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258", "category": "international"},
+    {"name": "Reuters World", "url": "https://www.rss.app/feeds/v1.1/toXBmjkzfJFiCMjr.json", "category": "international"},
+    {"name": "CoinDesk", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "category": "international"},
+    # 국내 (한국어) - 증권/경제
+    {"name": "한경 증권", "url": "https://rss.hankyung.com/stock.xml", "category": "domestic"},
+    {"name": "한경 경제", "url": "https://rss.hankyung.com/economy.xml", "category": "domestic"},
+    {"name": "매경 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "domestic"},
+    {"name": "연합뉴스 경제", "url": "https://www.yonhapnewstv.co.kr/category/news/economy/feed/", "category": "domestic"},
 ]
 
 def fetch_news_from_rss() -> list:
@@ -290,17 +293,37 @@ def fetch_news_from_api() -> list:
 
 def refresh_news():
     log.info("뉴스 갱신 시작")
-    articles = fetch_news_from_api() if NEWS_API_KEY else []
-    articles.extend(fetch_news_from_rss())
-    seen, unique = set(), []
-    for a in articles:
-        key = a["title"].strip().lower()[:50]
-        if key and key not in seen:
-            seen.add(key)
-            unique.append(a)
-    news_cache["articles"] = unique[:10]
+    intl_articles = []
+    domestic_articles = []
+    for f in RSS_FEEDS:
+        try:
+            feed = feedparser.parse(f["url"])
+            for entry in feed.entries[:8]:
+                article = {
+                    "title": entry.get("title", ""),
+                    "summary": entry.get("summary", entry.get("description", ""))[:200],
+                    "source": f["name"], "category": f["category"],
+                    "link": entry.get("link", ""), "published": entry.get("published", ""),
+                }
+                if f["category"] == "international":
+                    intl_articles.append(article)
+                else:
+                    domestic_articles.append(article)
+        except Exception as e:
+            log.warning("RSS 실패 [%s]: %s", f["name"], e)
+    # 각각 중복 제거 후 5개씩
+    def dedupe(articles, limit):
+        seen, unique = set(), []
+        for a in articles:
+            key = a["title"].strip().lower()[:50]
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(a)
+        return unique[:limit]
+    combined = dedupe(intl_articles, 5) + dedupe(domestic_articles, 5)
+    news_cache["articles"] = combined
     news_cache["ts"] = time.time()
-    log.info("뉴스 갱신 완료: %d건", len(unique))
+    log.info("뉴스 갱신 완료: 국제 %d + 국내 %d", min(5, len(intl_articles)), min(5, len(domestic_articles)))
 
 
 # ═══════════════════════════════════════════════════════════════
