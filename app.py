@@ -1,13 +1,13 @@
 """
-실시간 경제 대시보드 백엔드 (Render 최적화 버전)
-- 경제지표: 개별 티커 조회로 안정성 향상
-- 주요뉴스: 1시간 단위 캐시 갱신
+실시간 경제 대시보드 백엔드 (Render 최적화 v3)
+- yf.download() 배치 방식으로 안정성 대폭 향상
 """
 
 import os
 import json
 import time
 import logging
+import traceback
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -23,33 +23,35 @@ import requests
 # ─── 설정 ───────────────────────────────────────────────────
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "")
 NEWS_REFRESH_INTERVAL = 3600
-MARKET_CACHE_TTL = 60  # 60초 캐시 (서버 부하 감소)
+MARKET_CACHE_TTL = 120  # 2분 캐시
 
 KST = timezone(timedelta(hours=9))
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger("dashboard")
 
 # ─── 티커 정의 ──────────────────────────────────────────────
 TICKERS = {
-    "USD/KRW": {"symbol": "KRW=X",   "category": "fx"},
-    "USD/JPY": {"symbol": "JPY=X",   "category": "fx"},
-    "EUR/USD": {"symbol": "EURUSD=X","category": "fx"},
-    "DXY":     {"symbol": "DX-Y.NYB","category": "fx"},
-    "Bitcoin":  {"symbol": "BTC-USD", "category": "crypto"},
-    "Ethereum": {"symbol": "ETH-USD", "category": "crypto"},
-    "S&P 500":       {"symbol": "^GSPC",  "category": "index"},
-    "Nasdaq":        {"symbol": "^IXIC",  "category": "index"},
-    "Dow Jones":     {"symbol": "^DJI",   "category": "index"},
-    "KOSPI":         {"symbol": "^KS11",  "category": "index"},
-    "Nasdaq Futures":{"symbol": "NQ=F",   "category": "index"},
-    "Gold":    {"symbol": "GC=F",  "category": "commodity"},
-    "WTI Oil": {"symbol": "CL=F",  "category": "commodity"},
-    "Silver":  {"symbol": "SI=F",  "category": "commodity"},
-    "VIX":            {"symbol": "^VIX",   "category": "volatility"},
-    "US 10Y Treasury":{"symbol": "^TNX",   "category": "volatility"},
-    "US 2Y Treasury": {"symbol": "^IRX",   "category": "volatility"},
+    "USD/KRW":        {"symbol": "KRW=X",    "category": "fx"},
+    "USD/JPY":        {"symbol": "JPY=X",    "category": "fx"},
+    "EUR/USD":        {"symbol": "EURUSD=X", "category": "fx"},
+    "DXY":            {"symbol": "DX-Y.NYB", "category": "fx"},
+    "Bitcoin":        {"symbol": "BTC-USD",  "category": "crypto"},
+    "Ethereum":       {"symbol": "ETH-USD",  "category": "crypto"},
+    "S&P 500":        {"symbol": "^GSPC",    "category": "index"},
+    "Nasdaq":         {"symbol": "^IXIC",    "category": "index"},
+    "Dow Jones":      {"symbol": "^DJI",     "category": "index"},
+    "KOSPI":          {"symbol": "^KS11",    "category": "index"},
+    "Nasdaq Futures": {"symbol": "NQ=F",     "category": "index"},
+    "Gold":           {"symbol": "GC=F",     "category": "commodity"},
+    "WTI Oil":        {"symbol": "CL=F",     "category": "commodity"},
+    "Silver":         {"symbol": "SI=F",     "category": "commodity"},
+    "VIX":            {"symbol": "^VIX",     "category": "volatility"},
+    "US 10Y Treasury":{"symbol": "^TNX",     "category": "volatility"},
+    "US 2Y Treasury": {"symbol": "^IRX",     "category": "volatility"},
 }
+
+# 심볼 → 이름 역매핑
+SYMBOL_TO_NAME = {v["symbol"]: k for k, v in TICKERS.items()}
 
 # ─── 캐시 ────────────────────────────────────────────────────
 market_cache = {"data": None, "ts": 0}
@@ -57,81 +59,105 @@ news_cache = {"articles": [], "ts": 0}
 
 
 # ═══════════════════════════════════════════════════════════════
-#  시세 데이터 (yfinance) — 개별 조회 방식
+#  시세 데이터 — yf.download() 배치 방식
 # ═══════════════════════════════════════════════════════════════
 
-def fetch_single_ticker(symbol: str) -> dict:
-    """개별 티커 1개를 안전하게 조회"""
-    try:
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period="5d")
-
-        if hist.empty or len(hist) < 1:
-            return None
-
-        price = float(hist["Close"].iloc[-1])
-        prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else None
-
-        change_pct = None
-        if price and prev and prev != 0:
-            change_pct = round(((price - prev) / prev) * 100, 2)
-
-        return {
-            "price": round(price, 2),
-            "prev_close": round(prev, 2) if prev else None,
-            "change_pct": change_pct,
-        }
-    except Exception as e:
-        log.warning("티커 %s 조회 실패: %s", symbol, e)
-        return None
-
-
 def fetch_market_data() -> dict:
-    """전체 시세 데이터 조회 (개별 방식)"""
     now = time.time()
     if market_cache["data"] and (now - market_cache["ts"]) < MARKET_CACHE_TTL:
         return market_cache["data"]
 
-    log.info("시세 조회 시작: %d개 티커 (개별 조회)", len(TICKERS))
+    symbols = [v["symbol"] for v in TICKERS.values()]
+    log.info("시세 조회 시작: %d개 티커 (배치 다운로드)", len(symbols))
+
     results = {}
-    success_count = 0
 
-    for name, meta in TICKERS.items():
-        data = fetch_single_ticker(meta["symbol"])
-        if data:
-            results[name] = {
-                "name": name,
-                "category": meta["category"],
-                "price": data["price"],
-                "prev_close": data["prev_close"],
-                "change_pct": data["change_pct"],
-                "symbol": meta["symbol"],
-            }
-            success_count += 1
-        else:
-            results[name] = {
-                "name": name,
-                "category": meta["category"],
-                "price": None,
-                "prev_close": None,
-                "change_pct": None,
-                "symbol": meta["symbol"],
-            }
+    try:
+        # 배치 다운로드 — 한 번의 요청으로 모든 티커 조회
+        df = yf.download(
+            tickers=symbols,
+            period="5d",
+            group_by="ticker",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+        )
 
-    if success_count > 0:
+        log.info("다운로드 완료, 데이터 파싱 중...")
+
+        for name, meta in TICKERS.items():
+            sym = meta["symbol"]
+            try:
+                # 멀티 티커 결과에서 개별 티커 데이터 추출
+                if len(symbols) == 1:
+                    ticker_df = df
+                else:
+                    ticker_df = df[sym] if sym in df.columns.get_level_values(0) else None
+
+                if ticker_df is None or ticker_df.empty:
+                    results[name] = _empty(name, meta["category"], sym)
+                    continue
+
+                close = ticker_df["Close"].dropna()
+                if len(close) < 1:
+                    results[name] = _empty(name, meta["category"], sym)
+                    continue
+
+                price = float(close.iloc[-1])
+                prev = float(close.iloc[-2]) if len(close) >= 2 else None
+                change_pct = round(((price - prev) / prev) * 100, 2) if prev and prev != 0 else None
+
+                results[name] = {
+                    "name": name,
+                    "category": meta["category"],
+                    "price": round(price, 2),
+                    "prev_close": round(prev, 2) if prev else None,
+                    "change_pct": change_pct,
+                    "symbol": sym,
+                }
+            except Exception as e:
+                log.warning("티커 %s 파싱 실패: %s", sym, e)
+                results[name] = _empty(name, meta["category"], sym)
+
+    except Exception as e:
+        log.error("배치 다운로드 실패: %s", e)
+        log.error(traceback.format_exc())
+
+        # 배치 실패 시 개별 조회 시도
+        log.info("개별 조회로 재시도...")
+        for name, meta in TICKERS.items():
+            sym = meta["symbol"]
+            try:
+                t = yf.Ticker(sym)
+                hist = t.history(period="5d")
+                if not hist.empty and len(hist) >= 1:
+                    price = float(hist["Close"].iloc[-1])
+                    prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else None
+                    change_pct = round(((price - prev) / prev) * 100, 2) if prev and prev != 0 else None
+                    results[name] = {
+                        "name": name, "category": meta["category"],
+                        "price": round(price, 2),
+                        "prev_close": round(prev, 2) if prev else None,
+                        "change_pct": change_pct, "symbol": sym,
+                    }
+                else:
+                    results[name] = _empty(name, meta["category"], sym)
+            except Exception as e2:
+                log.warning("개별 조회도 실패 %s: %s", sym, e2)
+                results[name] = _empty(name, meta["category"], sym)
+
+    success = sum(1 for v in results.values() if v.get("price") is not None)
+    log.info("시세 조회 완료: %d/%d 성공", success, len(TICKERS))
+
+    if success > 0:
         market_cache["data"] = results
         market_cache["ts"] = time.time()
 
-    log.info("시세 조회 완료: %d/%d 성공", success_count, len(TICKERS))
     return results
 
 
-def prefetch_market_data():
-    """서버 시작 시 백그라운드에서 시세 미리 조회"""
-    try:
-        fetch_market_data()
-    except Exception as e:
-        log.error("시세 사전 조회 실패: %s", e)
+def _empty(name, category, symbol=""):
+    return {"name": name, "category": category, "price": None, "prev_close": None, "change_pct": None, "symbol": symbol}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -202,8 +228,7 @@ def refresh_news():
     articles = []
     if NEWS_API_KEY:
         articles = fetch_news_from_api()
-    rss_articles = fetch_news_from_rss()
-    articles.extend(rss_articles)
+    articles.extend(fetch_news_from_rss())
     seen = set()
     unique = []
     for a in articles:
@@ -222,13 +247,16 @@ def refresh_news():
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(refresh_news, "interval", seconds=NEWS_REFRESH_INTERVAL, id="news_refresh")
-scheduler.add_job(prefetch_market_data, "interval", seconds=300, id="market_prefetch")  # 5분마다 시세 사전 조회
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     refresh_news()
-    prefetch_market_data()
+    # 서버 시작 시 시세 미리 조회
+    try:
+        fetch_market_data()
+    except Exception as e:
+        log.error("시작 시 시세 조회 실패: %s", e)
     scheduler.start()
     yield
     scheduler.shutdown()
@@ -264,8 +292,20 @@ async def get_status():
         "market_cached": market_cache["ts"] > 0,
         "market_last_updated": datetime.fromtimestamp(market_cache["ts"], tz=KST).isoformat() if market_cache["ts"] else None,
         "news_count": len(news_cache["articles"]),
-        "news_last_updated": datetime.fromtimestamp(news_cache["ts"], tz=KST).isoformat() if news_cache["ts"] else None,
     }
+
+
+@app.get("/api/debug")
+async def debug():
+    """디버깅용 — 시세 조회 테스트"""
+    try:
+        df = yf.download("BTC-USD", period="2d", progress=False)
+        if df.empty:
+            return {"error": "yfinance returned empty data", "tip": "Yahoo Finance might be blocking this server"}
+        price = float(df["Close"].iloc[-1])
+        return {"status": "ok", "btc_price": price, "rows": len(df)}
+    except Exception as e:
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 
 @app.get("/", response_class=HTMLResponse)
