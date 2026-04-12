@@ -290,6 +290,18 @@
   <span style="color:#f0883e;">● 25~30: 불안</span>
   <span style="color:#f85149;">● 30 이상: 극도 공포</span>
 </div>
+  <div class="vix-banner" id="fngBanner" style="display:none; margin-bottom:20px;">
+  <span class="vix-label">크립토 심리</span>
+  <span class="vix-value" id="fngValue">—</span>
+  <span class="vix-badge" id="fngBadge">—</span>
+  <span style="font-size:10px; color:var(--text3); margin-left:auto;">출처: alternative.me</span>
+</div>
+<div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; font-size:11px;">
+  <span style="color:#f85149;">● 0~24: 극도 공포</span>
+  <span style="color:#f0883e;">● 25~49: 공포</span>
+  <span style="color:#d29922;">● 50~74: 탐욕</span>
+  <span style="color:#3fb950;">● 75~100: 극도 탐욕</span>
+</div>
 
   <!-- Market Data -->
   <div id="marketContainer">
@@ -514,13 +526,16 @@ async function fetchNews() {
 function refreshAll() {
   fetchMarket();
   fetchNews();
+  fetchFearGreed();
 }
 
 // ── Auto Refresh ──
 fetchMarket();
 fetchNews();
+fetchFearGreed();
 setInterval(fetchMarket, MARKET_REFRESH);
 setInterval(fetchNews, NEWS_REFRESH);
+setInterval(fetchFearGreed, 3600000);
 </script>
 </body>
 </html>
