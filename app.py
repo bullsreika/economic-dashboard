@@ -245,13 +245,13 @@ def fetch_market_data() -> dict:
 # ═══════════════════════════════════════════════════════════════
 
 RSS_FEEDS = [
-    {"name": "한국경제 경제", "url": "https://rss.hankyung.com/economy.xml", "category": "economy"},
-    {"name": "한국경제 증권", "url": "https://rss.hankyung.com/stock.xml", "category": "market"},
-    {"name": "한국경제 국제", "url": "https://rss.hankyung.com/intl.xml", "category": "geopolitics"},
-    {"name": "매일경제 경제", "url": "https://file.mk.co.kr/news/rss/rss_30100041.xml", "category": "economy"},
-    {"name": "매일경제 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "market"},
-    {"name": "매일경제 국제", "url": "https://file.mk.co.kr/news/rss/rss_30300018.xml", "category": "geopolitics"},
+    {"name": "한경 증권", "url": "https://rss.hankyung.com/stock.xml", "category": "market"},
+    {"name": "한경 국제", "url": "https://rss.hankyung.com/intl.xml", "category": "geopolitics"},
+    {"name": "한경 경제", "url": "https://rss.hankyung.com/economy.xml", "category": "economy"},
+    {"name": "매경 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "market"},
+    {"name": "매경 국제", "url": "https://file.mk.co.kr/news/rss/rss_30300018.xml", "category": "geopolitics"},
     {"name": "연합뉴스 경제", "url": "https://www.yonhapnewstv.co.kr/category/news/economy/feed/", "category": "economy"},
+    {"name": "코인데스크코리아", "url": "https://www.coindeskkorea.com/feed", "category": "market"},
 ]
 
 def fetch_news_from_rss() -> list:
@@ -298,7 +298,7 @@ def refresh_news():
         if key and key not in seen:
             seen.add(key)
             unique.append(a)
-    news_cache["articles"] = unique[:20]
+    news_cache["articles"] = unique[:10]
     news_cache["ts"] = time.time()
     log.info("뉴스 갱신 완료: %d건", len(unique))
 
