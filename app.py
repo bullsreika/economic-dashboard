@@ -349,6 +349,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Economic Dashboard", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.get("/api/feargreed")
+async def get_feargreed():
+    """크립토 공포탐욕지수"""
+    try:
+        resp = req.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        data = resp.json()
+        fng = data.get("data", [{}])[0]
+        return {"value": int(fng.get("value", 0)), "label": fng.get("value_classification", ""), "timestamp": fng.get("timestamp", "")}
+    except Exception as e:
+        return {"value": None, "label": "N/A", "error": str(e)}
 
 @app.get("/api/market")
 async def get_market():
