@@ -41,7 +41,6 @@
     padding: 20px 24px;
   }
 
-  /* ── Header ── */
   .header {
     display: flex;
     justify-content: space-between;
@@ -50,140 +49,42 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  .header h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-  }
-  .header-meta {
-    font-size: 12px;
-    color: var(--text2);
-    margin-top: 4px;
-  }
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 11px;
-    color: var(--text2);
-  }
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .refresh-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    padding: 5px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: var(--sans);
-    transition: all 0.2s;
-  }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-meta { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .status-bar { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text2); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .refresh-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 5px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
   .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
 
-  /* ── VIX Banner ── */
-  .vix-banner {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    margin-bottom: 20px;
-    background: var(--bg2);
-  }
+  .vix-banner { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; background: var(--bg2); }
   .vix-label { font-size: 12px; color: var(--text2); }
   .vix-value { font-size: 22px; font-weight: 700; font-family: var(--mono); }
-  .vix-badge {
-    font-size: 11px; font-weight: 500;
-    padding: 3px 12px; border-radius: 20px;
-  }
+  .vix-badge { font-size: 11px; font-weight: 500; padding: 3px 12px; border-radius: 20px; }
 
-  /* ── Section ── */
   .section { margin-bottom: 18px; }
-  .section-label {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text2);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .section-dot {
-    width: 8px; height: 8px;
-    border-radius: 2px;
-  }
+  .section-label { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  .section-dot { width: 8px; height: 8px; border-radius: 2px; }
 
-  /* ── Cards Grid ── */
-  .cards {
-    display: grid;
-    gap: 8px;
-  }
+  .cards { display: grid; gap: 8px; }
   .cards-4 { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   .cards-3 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .cards-2 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    transition: border-color 0.2s;
-  }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; transition: border-color 0.2s; }
   .card:hover { border-color: var(--text3); }
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
+  .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .card-name { font-size: 12px; color: var(--text2); }
-  .card-icon {
-    font-size: 10px; font-family: var(--mono);
-    color: var(--text3); font-weight: 500;
-  }
-  .card-price {
-    font-size: 20px;
-    font-weight: 500;
-    font-family: var(--mono);
-    margin-bottom: 5px;
-  }
-  .card-change {
-    font-size: 11px;
-    font-family: var(--mono);
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 4px;
-    display: inline-block;
-  }
+  .card-icon { font-size: 10px; font-family: var(--mono); color: var(--text3); font-weight: 500; }
+  .card-price { font-size: 20px; font-weight: 500; font-family: var(--mono); margin-bottom: 5px; }
+  .card-change { font-size: 11px; font-family: var(--mono); font-weight: 500; padding: 2px 8px; border-radius: 4px; display: inline-block; }
   .change-up { color: var(--green); background: rgba(63,185,80,0.12); }
   .change-down { color: var(--red); background: rgba(248,81,73,0.12); }
   .change-flat { color: var(--text2); background: rgba(139,148,158,0.1); }
 
-  /* ── News ── */
   .news-section { margin-top: 24px; }
   .news-list { display: flex; flex-direction: column; gap: 8px; }
-
-  .news-item {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    border-left: 3px solid var(--text3);
-    transition: border-color 0.2s;
-  }
+  .news-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; border-left: 3px solid var(--text3); transition: border-color 0.2s; }
   .news-item:hover { border-color: var(--text3); }
   .news-item[data-cat="fed"] { border-left-color: var(--purple); }
   .news-item[data-cat="economy"] { border-left-color: var(--blue); }
@@ -193,16 +94,8 @@
   .news-item[data-cat="international"] { border-left-color: var(--blue); }
   .news-item[data-cat="domestic"] { border-left-color: var(--teal); }
 
-  .news-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-  .news-cat {
-    font-size: 10px; font-weight: 500;
-    padding: 1px 8px; border-radius: 6px;
-  }
+  .news-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .news-cat { font-size: 10px; font-weight: 500; padding: 1px 8px; border-radius: 6px; }
   .news-cat[data-cat="fed"] { color: var(--purple); background: rgba(188,140,255,0.12); }
   .news-cat[data-cat="economy"] { color: var(--blue); background: rgba(88,166,255,0.12); }
   .news-cat[data-cat="market"] { color: var(--green); background: rgba(63,185,80,0.12); }
@@ -212,47 +105,21 @@
   .news-cat[data-cat="domestic"] { color: var(--teal); background: rgba(86,212,221,0.12); }
 
   .news-source { font-size: 10px; color: var(--text3); }
-  .news-title {
-    font-size: 14px; font-weight: 500;
-    line-height: 1.4; margin-bottom: 3px;
-  }
+  .news-title { font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 3px; }
   .news-title a { color: var(--text); text-decoration: none; }
   .news-title a:hover { color: var(--blue); }
   .news-summary { font-size: 12px; color: var(--text2); line-height: 1.5; }
 
-  /* ── Footer ── */
-  .footer {
-    text-align: center;
-    padding: 20px 0 10px;
-    font-size: 11px;
-    color: var(--text3);
-  }
+  .footer { text-align: center; padding: 20px 0 10px; font-size: 11px; color: var(--text3); }
 
-  /* ── Loading ── */
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: var(--text2);
-    font-size: 14px;
-  }
-  .spinner {
-    display: inline-block;
-    width: 20px; height: 20px;
-    border: 2px solid var(--border);
-    border-top-color: var(--blue);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 10px;
-  }
+  .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 14px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Responsive ── */
   @media (max-width: 600px) {
     .container { padding: 14px 12px; }
     .header h1 { font-size: 18px; }
-    .cards-4, .cards-3, .cards-2 {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    .cards-4, .cards-3, .cards-2 { grid-template-columns: repeat(2, 1fr); }
     .card-price { font-size: 16px; }
     .vix-value { font-size: 18px; }
   }
@@ -284,24 +151,41 @@
     <span class="card-change change-flat" id="vixChange">—</span>
   </div>
   <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; font-size:11px;">
-  <span style="color:#3fb950;">● 15 미만: 매우 안정</span>
-  <span style="color:#3fb950;">● 15~20: 안정</span>
-  <span style="color:#d29922;">● 20~25: 보통</span>
-  <span style="color:#f0883e;">● 25~30: 불안</span>
-  <span style="color:#f85149;">● 30 이상: 극도 공포</span>
-</div>
-  <div class="vix-banner" id="fngBanner" style="display:none; margin-bottom:20px;">
-  <span class="vix-label">크립토 심리</span>
-  <span class="vix-value" id="fngValue">—</span>
-  <span class="vix-badge" id="fngBadge">—</span>
-  <span style="font-size:10px; color:var(--text3); margin-left:auto;">출처: alternative.me</span>
-</div>
-<div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; font-size:11px;">
-  <span style="color:#f85149;">● 0~24: 극도 공포</span>
-  <span style="color:#f0883e;">● 25~49: 공포</span>
-  <span style="color:#d29922;">● 50~74: 탐욕</span>
-  <span style="color:#3fb950;">● 75~100: 극도 탐욕</span>
-</div>
+    <span style="color:#3fb950;">● 15 미만: 매우 안정</span>
+    <span style="color:#3fb950;">● 15~20: 안정</span>
+    <span style="color:#d29922;">● 20~25: 보통</span>
+    <span style="color:#f0883e;">● 25~30: 불안</span>
+    <span style="color:#f85149;">● 30 이상: 극도 공포</span>
+  </div>
+
+  <!-- Crypto Fear & Greed -->
+  <div style="display:flex; align-items:center; gap:20px; padding:14px 20px; border-radius:8px; border:1px solid var(--border); margin-bottom:8px; background:var(--bg2); display:none;" id="fngBanner">
+    <div style="flex-shrink:0;">
+      <svg width="120" height="70" viewBox="0 0 120 70" id="fngGauge">
+        <path d="M10 65 A50 50 0 0 1 110 65" fill="none" stroke="#f85149" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+        <path d="M10 65 A50 50 0 0 1 35 20" fill="none" stroke="#f85149" stroke-width="8" stroke-linecap="round"/>
+        <path d="M35 20 A50 50 0 0 1 60 10" fill="none" stroke="#f0883e" stroke-width="8" stroke-linecap="round"/>
+        <path d="M60 10 A50 50 0 0 1 85 20" fill="none" stroke="#d29922" stroke-width="8" stroke-linecap="round"/>
+        <path d="M85 20 A50 50 0 0 1 110 65" fill="none" stroke="#3fb950" stroke-width="8" stroke-linecap="round"/>
+        <line id="fngNeedle" x1="60" y1="65" x2="60" y2="20" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="60" cy="65" r="4" fill="var(--text)"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text2);">크립토 공포탐욕지수</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+        <span style="font-size:28px; font-weight:700; font-family:var(--mono);" id="fngValue">—</span>
+        <span style="font-size:12px; font-weight:500; padding:3px 12px; border-radius:20px;" id="fngBadge">—</span>
+      </div>
+      <div style="font-size:9px; color:var(--text3); margin-top:4px;">출처: alternative.me</div>
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; font-size:11px;">
+    <span style="color:#f85149;">● 0~24: 극도 공포</span>
+    <span style="color:#f0883e;">● 25~49: 공포</span>
+    <span style="color:#d29922;">● 50~74: 탐욕</span>
+    <span style="color:#3fb950;">● 75~100: 극도 탐욕</span>
+  </div>
 
   <!-- Market Data -->
   <div id="marketContainer">
@@ -321,25 +205,19 @@
   </div>
 
   <div class="footer">
-    실시간 데이터: yfinance · 뉴스: RSS/NewsAPI · 시세 30초 캐시 · 뉴스 1시간 갱신<br>
+    실시간 데이터: Yahoo Finance · 뉴스: RSS · 시세 2분 캐시 · 뉴스 1시간 갱신<br>
     참고용 데이터이며 실제 거래 목적으로 사용하지 마세요.
   </div>
 </div>
 
 <script>
-const API_BASE = "";  // 같은 서버면 빈 문자열
-const MARKET_REFRESH = 30000;  // 30초마다 시세 갱신
-const NEWS_REFRESH = 3600000;  // 1시간마다 뉴스 갱신
+const API_BASE = "";
+const MARKET_REFRESH = 30000;
+const NEWS_REFRESH = 3600000;
 
 const CAT_LABELS = {
-  international: "국제",
-  domestic: "국내",
-  fed: "연준",
-  economy: "경제",
-  market: "시장",
-  geopolitics: "지정학",
-  trade: "무역",
-  general: "일반",
+  international: "국제", domestic: "국내", fed: "연준", economy: "경제",
+  market: "시장", geopolitics: "지정학", trade: "무역", general: "일반",
 };
 const CAT_COLORS = {
   fx: { dot: "#58a6ff", label: "환율" },
@@ -409,7 +287,6 @@ function vixMeta(val) {
   return { label: "극도 공포", bg: "rgba(248,81,73,0.15)", color: "#f85149", border: "#f85149" };
 }
 
-// ── Render Market ──
 function renderMarket(data) {
   const categories = {};
   for (const [name, item] of Object.entries(data)) {
@@ -418,7 +295,6 @@ function renderMarket(data) {
     categories[cat].push({...item, name});
   }
 
-  // VIX banner
   const vixData = data["VIX"];
   if (vixData && vixData.price != null) {
     const meta = vixMeta(vixData.price);
@@ -467,7 +343,6 @@ function renderMarket(data) {
   document.getElementById("marketContainer").innerHTML = html;
 }
 
-// ── Render News ──
 function renderNews(articles, updatedAt) {
   if (!articles.length) {
     document.getElementById("newsContainer").innerHTML =
@@ -496,7 +371,6 @@ function renderNews(articles, updatedAt) {
   }
 }
 
-// ── API Calls ──
 async function fetchMarket() {
   try {
     const resp = await fetch(API_BASE + "/api/market");
@@ -523,13 +397,41 @@ async function fetchNews() {
   }
 }
 
+async function fetchFearGreed() {
+  try {
+    const resp = await fetch(API_BASE + "/api/feargreed");
+    const json = await resp.json();
+    if (json.value != null) {
+      const v = json.value;
+      document.getElementById("fngBanner").style.display = "flex";
+      document.getElementById("fngValue").textContent = v;
+      let label, bg, color;
+      if (v < 25) { label="극도 공포"; bg="rgba(248,81,73,0.15)"; color="#f85149"; }
+      else if (v < 50) { label="공포"; bg="rgba(240,136,62,0.15)"; color="#f0883e"; }
+      else if (v < 75) { label="탐욕"; bg="rgba(210,153,34,0.15)"; color="#d29922"; }
+      else { label="극도 탐욕"; bg="rgba(63,185,80,0.15)"; color="#3fb950"; }
+      const badge = document.getElementById("fngBadge");
+      badge.textContent = label;
+      badge.style.background = bg;
+      badge.style.color = color;
+      document.getElementById("fngBanner").style.borderColor = color;
+      const angle = -90 + (v / 100) * 180;
+      const rad = angle * Math.PI / 180;
+      const nx = 60 + 42 * Math.cos(rad);
+      const ny = 65 + 42 * Math.sin(rad);
+      const needle = document.getElementById("fngNeedle");
+      needle.setAttribute("x2", nx);
+      needle.setAttribute("y2", ny);
+    }
+  } catch(e) { console.error("공포탐욕 조회 실패:", e); }
+}
+
 function refreshAll() {
   fetchMarket();
   fetchNews();
   fetchFearGreed();
 }
 
-// ── Auto Refresh ──
 fetchMarket();
 fetchNews();
 fetchFearGreed();
