@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실시간 경제 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2333;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --border: #30363d;
+    --green: #3fb950;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --amber: #d29922;
+    --coral: #f0883e;
+    --teal: #56d4dd;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --sans: 'Noto Sans KR', -apple-system, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 24px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .header-meta {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* ── VIX Banner ── */
+  .vix-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+    background: var(--bg2);
+  }
+  .vix-label { font-size: 12px; color: var(--text2); }
+  .vix-value { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .vix-badge {
+    font-size: 11px; font-weight: 500;
+    padding: 3px 12px; border-radius: 20px;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 18px; }
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .section-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  /* ── Cards Grid ── */
+  .cards {
+    display: grid;
+    gap: 8px;
+  }
+  .cards-4 { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .cards-3 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .cards-2 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--text3); }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .card-name { font-size: 12px; color: var(--text2); }
+  .card-icon {
+    font-size: 10px; font-family: var(--mono);
+    color: var(--text3); font-weight: 500;
+  }
+  .card-price {
+    font-size: 20px;
+    font-weight: 500;
+    font-family: var(--mono);
+    margin-bottom: 5px;
+  }
+  .card-change {
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .change-up { color: var(--green); background: rgba(63,185,80,0.12); }
+  .change-down { color: var(--red); background: rgba(248,81,73,0.12); }
+  .change-flat { color: var(--text2); background: rgba(139,148,158,0.1); }
+
+  /* ── News ── */
+  .news-section { margin-top: 24px; }
+  .news-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .news-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--text3);
+    transition: border-color 0.2s;
+  }
+  .news-item:hover { border-color: var(--text3); }
+  .news-item[data-cat="fed"] { border-left-color: var(--purple); }
+  .news-item[data-cat="economy"] { border-left-color: var(--blue); }
+  .news-item[data-cat="market"] { border-left-color: var(--green); }
+  .news-item[data-cat="geopolitics"] { border-left-color: var(--red); }
+  .news-item[data-cat="trade"] { border-left-color: var(--amber); }
+
+  .news-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .news-cat {
+    font-size: 10px; font-weight: 500;
+    padding: 1px 8px; border-radius: 6px;
+  }
+  .news-cat[data-cat="fed"] { color: var(--purple); background: rgba(188,140,255,0.12); }
+  .news-cat[data-cat="economy"] { color: var(--blue); background: rgba(88,166,255,0.12); }
+  .news-cat[data-cat="market"] { color: var(--green); background: rgba(63,185,80,0.12); }
+  .news-cat[data-cat="geopolitics"] { color: var(--red); background: rgba(248,81,73,0.12); }
+  .news-cat[data-cat="trade"] { color: var(--amber); background: rgba(210,153,34,0.12); }
+
+  .news-source { font-size: 10px; color: var(--text3); }
+  .news-title {
+    font-size: 14px; font-weight: 500;
+    line-height: 1.4; margin-bottom: 3px;
+  }
+  .news-title a { color: var(--text); text-decoration: none; }
+  .news-title a:hover { color: var(--blue); }
+  .news-summary { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 20px 0 10px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* ── Loading ── */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+    font-size: 14px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .container { padding: 14px 12px; }
+    .header h1 { font-size: 18px; }
+    .cards-4, .cards-3, .cards-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .card-price { font-size: 16px; }
+    .vix-value { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>📊 실시간 경제 대시보드</h1>
+      <div class="header-meta" id="lastUpdated">데이터 로딩 중...</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">연결 중</span>
+      </div>
+      <button class="refresh-btn" onclick="refreshAll()">↻ 새로고침</button>
+    </div>
+  </div>
+
+  <!-- VIX Banner -->
+  <div class="vix-banner" id="vixBanner" style="display:none;">
+    <span class="vix-label">시장 심리</span>
+    <span class="vix-value" id="vixValue">—</span>
+    <span class="vix-badge" id="vixBadge">—</span>
+    <span class="card-change change-flat" id="vixChange">—</span>
+  </div>
+
+  <!-- Market Data -->
+  <div id="marketContainer">
+    <div class="loading"><div class="spinner"></div><br>시세 데이터를 불러오는 중...</div>
+  </div>
+
+  <!-- News -->
+  <div class="news-section">
+    <div class="section-label">
+      <span class="section-dot" style="background: #8b949e;"></span>
+      <span>주요 뉴스 & 이슈</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--text3);" id="newsUpdated"></span>
+    </div>
+    <div class="news-list" id="newsContainer">
+      <div class="loading"><div class="spinner"></div><br>뉴스를 불러오는 중...</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    실시간 데이터: yfinance · 뉴스: RSS/NewsAPI · 시세 30초 캐시 · 뉴스 1시간 갱신<br>
+    참고용 데이터이며 실제 거래 목적으로 사용하지 마세요.
+  </div>
+</div>
+
+<script>
+const API_BASE = "";  // 같은 서버면 빈 문자열
+const MARKET_REFRESH = 30000;  // 30초마다 시세 갱신
+const NEWS_REFRESH = 3600000;  // 1시간마다 뉴스 갱신
+
+const CAT_LABELS = {
+  fed: "연준/중앙은행", economy: "경제", market: "시장",
+  geopolitics: "지정학/전쟁", trade: "무역/통상", general: "일반",
+};
+const CAT_COLORS = {
+  fx: { dot: "#58a6ff", label: "환율" },
+  crypto: { dot: "#d29922", label: "암호화폐" },
+  index: { dot: "#bc8cff", label: "주요 지수" },
+  commodity: { dot: "#f0883e", label: "원자재" },
+  volatility: { dot: "#f85149", label: "변동성 & 금리" },
+};
+const CAT_ICONS = {
+  "USD/KRW": "₩", "USD/JPY": "¥", "EUR/USD": "€", "DXY": "DX",
+  "Bitcoin": "₿", "Ethereum": "Ξ",
+  "S&P 500": "SP", "Nasdaq": "NQ", "Dow Jones": "DJ", "KOSPI": "KS",
+  "Nasdaq Futures": "NQF",
+  "Gold": "Au", "WTI Oil": "Oil", "Silver": "Ag",
+  "VIX": "VIX", "US 10Y Treasury": "10Y", "US 2Y Treasury": "2Y",
+};
+
+function formatPrice(name, price) {
+  if (price == null) return "—";
+  if (name.includes("USD/KRW")) return price.toLocaleString("ko-KR", {maximumFractionDigits: 2});
+  if (name.includes("USD/JPY")) return price.toFixed(2);
+  if (name.includes("EUR/USD")) return price.toFixed(4);
+  if (name === "DXY") return price.toFixed(2);
+  if (name === "Bitcoin" || name === "Ethereum") return "$" + price.toLocaleString("en-US", {maximumFractionDigits: 0});
+  if (name === "Gold" || name === "Silver" || name === "WTI Oil") return "$" + price.toLocaleString("en-US", {maximumFractionDigits: 2});
+  if (name.includes("Treasury")) return price.toFixed(3) + "%";
+  if (name === "VIX") return price.toFixed(2);
+  return price.toLocaleString("en-US", {maximumFractionDigits: 2});
+}
+
+function changeClass(pct) {
+  if (pct == null) return "change-flat";
+  return pct > 0 ? "change-up" : pct < 0 ? "change-down" : "change-flat";
+}
+
+function changeText(pct) {
+  if (pct == null) return "—";
+  const arrow = pct > 0 ? "▲" : pct < 0 ? "▼" : "";
+  const sign = pct > 0 ? "+" : "";
+  return `${arrow} ${sign}${pct.toFixed(2)}%`;
+}
+
+function vixMeta(val) {
+  if (val < 15) return { label: "매우 안정", bg: "rgba(63,185,80,0.15)", color: "#3fb950", border: "#3fb950" };
+  if (val < 20) return { label: "안정", bg: "rgba(63,185,80,0.1)", color: "#3fb950", border: "#3fb950" };
+  if (val < 25) return { label: "보통", bg: "rgba(210,153,34,0.15)", color: "#d29922", border: "#d29922" };
+  if (val < 30) return { label: "불안", bg: "rgba(240,136,62,0.15)", color: "#f0883e", border: "#f0883e" };
+  return { label: "극도 공포", bg: "rgba(248,81,73,0.15)", color: "#f85149", border: "#f85149" };
+}
+
+// ── Render Market ──
+function renderMarket(data) {
+  const categories = {};
+  for (const [name, item] of Object.entries(data)) {
+    const cat = item.category;
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push({...item, name});
+  }
+
+  // VIX banner
+  const vixData = data["VIX"];
+  if (vixData && vixData.price != null) {
+    const meta = vixMeta(vixData.price);
+    const banner = document.getElementById("vixBanner");
+    banner.style.display = "flex";
+    banner.style.borderColor = meta.border;
+    document.getElementById("vixValue").textContent = vixData.price.toFixed(2);
+    const badge = document.getElementById("vixBadge");
+    badge.textContent = meta.label;
+    badge.style.background = meta.bg;
+    badge.style.color = meta.color;
+    const ch = document.getElementById("vixChange");
+    ch.textContent = changeText(vixData.change_pct);
+    ch.className = "card-change " + changeClass(vixData.change_pct);
+  }
+
+  const order = ["fx", "crypto", "index", "commodity", "volatility"];
+  let html = "";
+
+  for (const cat of order) {
+    const items = categories[cat];
+    if (!items) continue;
+    const meta = CAT_COLORS[cat];
+    const colClass = items.length <= 2 ? "cards-2" : items.length <= 3 ? "cards-3" : "cards-4";
+
+    html += `<div class="section">
+      <div class="section-label">
+        <span class="section-dot" style="background:${meta.dot}"></span>
+        <span>${meta.label}</span>
+      </div>
+      <div class="cards ${colClass}">`;
+
+    for (const item of items) {
+      html += `<div class="card">
+        <div class="card-top">
+          <span class="card-name">${item.name}</span>
+          <span class="card-icon" style="color:${meta.dot}">${CAT_ICONS[item.name] || ""}</span>
+        </div>
+        <div class="card-price">${formatPrice(item.name, item.price)}</div>
+        <span class="card-change ${changeClass(item.change_pct)}">${changeText(item.change_pct)}</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  document.getElementById("marketContainer").innerHTML = html;
+}
+
+// ── Render News ──
+function renderNews(articles, updatedAt) {
+  if (!articles.length) {
+    document.getElementById("newsContainer").innerHTML =
+      '<div style="padding:20px;color:var(--text3);font-size:13px;">뉴스를 불러오지 못했습니다.</div>';
+    return;
+  }
+
+  let html = "";
+  for (const a of articles) {
+    const catLabel = CAT_LABELS[a.category] || a.category;
+    html += `<div class="news-item" data-cat="${a.category}">
+      <div class="news-meta">
+        <span class="news-cat" data-cat="${a.category}">${catLabel}</span>
+        <span class="news-source">${a.source}</span>
+      </div>
+      <div class="news-title">${a.link ? `<a href="${a.link}" target="_blank">${a.title}</a>` : a.title}</div>
+      ${a.summary ? `<div class="news-summary">${a.summary.replace(/<[^>]+>/g, "")}</div>` : ""}
+    </div>`;
+  }
+  document.getElementById("newsContainer").innerHTML = html;
+
+  if (updatedAt) {
+    const d = new Date(updatedAt);
+    document.getElementById("newsUpdated").textContent =
+      `갱신: ${d.toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit"})}`;
+  }
+}
+
+// ── API Calls ──
+async function fetchMarket() {
+  try {
+    const resp = await fetch(API_BASE + "/api/market");
+    const json = await resp.json();
+    renderMarket(json.data);
+    document.getElementById("lastUpdated").textContent =
+      `마지막 업데이트: ${new Date(json.updated_at).toLocaleTimeString("ko-KR")}`;
+    document.getElementById("statusDot").style.background = "var(--green)";
+    document.getElementById("statusText").textContent = "실시간";
+  } catch (e) {
+    console.error("시세 조회 실패:", e);
+    document.getElementById("statusDot").style.background = "var(--red)";
+    document.getElementById("statusText").textContent = "연결 오류";
+  }
+}
+
+async function fetchNews() {
+  try {
+    const resp = await fetch(API_BASE + "/api/news");
+    const json = await resp.json();
+    renderNews(json.articles, json.updated_at);
+  } catch (e) {
+    console.error("뉴스 조회 실패:", e);
+  }
+}
+
+function refreshAll() {
+  fetchMarket();
+  fetchNews();
+}
+
+// ── Auto Refresh ──
+fetchMarket();
+fetchNews();
+setInterval(fetchMarket, MARKET_REFRESH);
+setInterval(fetchNews, NEWS_REFRESH);
+</script>
+</body>
+</html>
