@@ -251,6 +251,7 @@ RSS_FEEDS = [
     {"name": "매일경제 경제", "url": "https://file.mk.co.kr/news/rss/rss_30100041.xml", "category": "economy"},
     {"name": "매일경제 증권", "url": "https://file.mk.co.kr/news/rss/rss_50200011.xml", "category": "market"},
     {"name": "매일경제 국제", "url": "https://file.mk.co.kr/news/rss/rss_30300018.xml", "category": "geopolitics"},
+    {"name": "연합뉴스 경제", "url": "https://www.yonhapnewstv.co.kr/category/news/economy/feed/", "category": "economy"},
 ]
 
 def fetch_news_from_rss() -> list:
