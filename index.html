@@ -326,6 +326,25 @@ const CAT_COLORS = {
   commodity: { dot: "#f0883e", label: "원자재" },
   volatility: { dot: "#f85149", label: "변동성 & 금리" },
 };
+const TICKER_LINKS = {
+  "USD/KRW": "https://www.investing.com/currencies/usd-krw",
+  "USD/JPY": "https://www.investing.com/currencies/usd-jpy",
+  "EUR/USD": "https://www.investing.com/currencies/eur-usd",
+  "DXY": "https://www.investing.com/indices/usdollar",
+  "Bitcoin": "https://www.binance.com/en/trade/BTC_USDT",
+  "Ethereum": "https://www.binance.com/en/trade/ETH_USDT",
+  "S&P 500": "https://www.investing.com/indices/us-spx-500",
+  "Nasdaq": "https://www.investing.com/indices/nasdaq-composite",
+  "Dow Jones": "https://www.investing.com/indices/us-30",
+  "KOSPI": "https://finance.naver.com/sise/sise_index.naver?code=KOSPI",
+  "Nasdaq Futures": "https://www.investing.com/indices/nq-100-futures",
+  "Gold": "https://www.investing.com/commodities/gold",
+  "WTI Oil": "https://www.investing.com/commodities/crude-oil",
+  "Silver": "https://www.investing.com/commodities/silver",
+  "VIX": "https://www.investing.com/indices/volatility-s-p-500",
+  "US 10Y Treasury": "https://www.investing.com/rates-bonds/u.s.-10-year-bond-yield",
+  "US 2Y Treasury": "https://www.investing.com/rates-bonds/u.s.-2-year-bond-yield",
+};
 const CAT_ICONS = {
   "USD/KRW": "₩", "USD/JPY": "¥", "EUR/USD": "€", "DXY": "DX",
   "Bitcoin": "₿", "Ethereum": "Ξ",
@@ -411,7 +430,7 @@ function renderMarket(data) {
       <div class="cards ${colClass}">`;
 
     for (const item of items) {
-      html += `<div class="card">
+      html += `<div class="card" onclick="window.open('${TICKER_LINKS[item.name] || '#'}', '_blank')" style="cursor:pointer;">
         <div class="card-top">
           <span class="card-name">${item.name}</span>
           <span class="card-icon" style="color:${meta.dot}">${CAT_ICONS[item.name] || ""}</span>
