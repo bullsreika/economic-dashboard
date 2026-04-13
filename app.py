@@ -247,7 +247,7 @@ def kis_request(method, endpoint, tr_id, params=None, body=None):
 
 
 def fetch_kis_trades_data():
-    """한투 해외선물 매매 기록 조회"""
+    """한투 해외선물 기간계좌손익 조회 (OTFM3118R)"""
     now = time.time()
     if kis_trades_cache["data"] and (now - kis_trades_cache["ts"]) < TRADES_CACHE_TTL:
         return kis_trades_cache["data"]
@@ -255,167 +255,127 @@ def fetch_kis_trades_data():
     if not KIS_APP_KEY or not KIS_ACCOUNT_NO:
         return {"error": "KIS API not configured"}
 
-    log.info("한투 해외선물 매매 조회 시작")
+    log.info("한투 해외선물 기간손익 조회 시작")
 
     acct_parts = KIS_ACCOUNT_NO.split("-")
     if len(acct_parts) != 2:
         return {"error": f"Invalid account format: {KIS_ACCOUNT_NO}"}
 
-    cano = acct_parts[0]  # 계좌번호 앞 8자리
-    acnt_prdt_cd = acct_parts[1]  # 뒤 2자리 (08)
+    cano = acct_parts[0]
+    acnt_prdt_cd = acct_parts[1]
 
-    # 해외선물옵션 일별 체결내역 조회
-    # 3개월씩 조회 (API 제한)
-    all_trades = []
     start_date = datetime(2026, 3, 1, tzinfo=KST)
     end_date = datetime.now(KST)
 
-    # 월 단위로 조회
+    # 주 단위로 조회하여 수익 곡선 생성
+    equity_curve = []
+    cumulative = 0
+    total_pnl = 0
+    all_symbols = {}
+
     current = start_date
     while current < end_date:
-        month_end = min(current + timedelta(days=30), end_date)
+        week_end = min(current + timedelta(days=6), end_date)
         start_str = current.strftime("%Y%m%d")
-        end_str = month_end.strftime("%Y%m%d")
-
-        log.info("한투 조회 기간: %s ~ %s", start_str, end_str)
+        end_str = week_end.strftime("%Y%m%d")
 
         params = {
             "CANO": cano,
             "ACNT_PRDT_CD": acnt_prdt_cd,
-            "STRT_DT": start_str,
-            "END_DT": end_str,
-            "FUOP_DVSN_CD": "01",
-            "FM_PDGR_CD": "",
+            "INQR_TERM_FROM_DT": start_str,
+            "INQR_TERM_TO_DT": end_str,
             "CRCY_CD": "USD",
-            "FM_ITEM_FTNG_YN": "N",
-            "SLL_BUY_DVSN_CD": "%%",
+            "WHOL_TRSL_YN": "N",
+            "FUOP_DVSN": "01",
             "CTX_AREA_FK200": "",
             "CTX_AREA_NK200": "",
         }
 
-        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=params)
+        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-period-ccld", "OTFM3118R", params=params)
 
         if data and data.get("rt_cd") == "0":
-            output = data.get("output1", [])
-            if isinstance(output, list):
-                all_trades.extend(output)
-                log.info("한투 %s~%s: %d건", start_str, end_str, len(output))
+            # output1: 통화별 요약 (총 손익)
+            output1 = data.get("output1", [])
+            week_pnl = 0
+            for item in output1:
+                net = float(item.get("fm_lqd_pfls_amt", 0) or 0)
+                fee = float(item.get("fm_fee", 0) or 0)
+                week_pnl += net - abs(fee)
+
+            if week_pnl != 0:
+                cumulative += week_pnl
+                equity_curve.append({
+                    "date": end_str[:4] + "-" + end_str[4:6] + "-" + end_str[6:8],
+                    "daily_pnl": round(week_pnl, 2),
+                    "cumulative": round(cumulative, 2),
+                })
+
+            # output2: 종목별 상세
+            output2 = data.get("output2", [])
+            for item in output2:
+                sym = item.get("ovrs_futr_fx_pdno", "UNKNOWN")
+                if not sym or sym == "UNKNOWN":
+                    continue
+                net = float(item.get("fm_lqd_pfls_amt", 0) or 0)
+                fee = float(item.get("fm_fee", 0) or 0)
+                buy_qty = int(item.get("fm_buy_qty", 0) or 0)
+                sll_qty = int(item.get("fm_sll_qty", 0) or 0)
+                sym_pnl = net - abs(fee)
+
+                if sym not in all_symbols:
+                    all_symbols[sym] = {"pnl": 0, "trades": 0}
+                all_symbols[sym]["pnl"] += sym_pnl
+                all_symbols[sym]["trades"] += buy_qty + sll_qty
         else:
-            msg = data.get("msg1","") if data else "no response"
-            log.warning("한투 API 응답: %s", msg)
+            msg = data.get("msg1", "") if data else "no response"
+            log.warning("한투 기간손익 %s~%s: %s", start_str, end_str, msg)
 
-        current = month_end + timedelta(days=1)
-        time.sleep(0.5)
+        current = week_end + timedelta(days=1)
+        time.sleep(0.3)
 
-    log.info("한투 전체 매매 기록: %d건", len(all_trades))
+    total_pnl = cumulative
 
-    if not all_trades:
-        # 잔고 조회로 대체 시도
-        log.info("체결 내역 없음, 잔고/손익 조회 시도")
-        bal_params = {
-            "CANO": cano,
-            "ACNT_PRDT_CD": acnt_prdt_cd,
-            "STRT_DT": start_date.strftime("%Y%m%d"),
-            "END_DT": end_date.strftime("%Y%m%d"),
-            "FUOP_DVSN_CD": "01",
-            "FM_PDGR_CD": "",
-            "CRCY_CD": "USD",
-            "FM_ITEM_FTNG_YN": "N",
-            "SLL_BUY_DVSN_CD": "%%",
-            "CTX_AREA_FK200": "",
-            "CTX_AREA_NK200": "",
-        }
-        bal_data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=bal_params)
-        if bal_data:
-            return {
-                "source": "kis",
-                "total_trades": 0,
-                "message": "체결 내역 조회 중. 잔고 데이터로 표시합니다.",
-                "raw_balance": str(bal_data.get("output", ""))[:500],
-                "period": f"2026.03.01 ~ {datetime.now(KST).strftime('%Y.%m.%d')}",
-            }
-        return {"error": "No trade data found", "source": "kis"}
-
-    # 매매 데이터 처리
-    daily_pnl = {}
-    by_sym = {}
-    total_pnl = 0
-    wins = 0
-    losses = 0
-    total = 0
-
-    for trade in all_trades:
-        # 필드명은 API 응답에 따라 다를 수 있음
-        pnl = float(trade.get("fm_futr_ccld_amt", trade.get("fm_ccld_amt", trade.get("pnl", 0))) or 0)
-        trade_date = trade.get("dt", trade.get("ord_dt", ""))
-        sym = trade.get("ovrs_futr_fx_pdno", trade.get("pdno", "UNKNOWN"))
-
-        if trade_date and len(trade_date) >= 8:
-            ds = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:8]}"
-        else:
-            ds = datetime.now(KST).strftime("%Y-%m-%d")
-
-        daily_pnl[ds] = daily_pnl.get(ds, 0) + pnl
-        if sym not in by_sym:
-            by_sym[sym] = {"pnl": 0, "count": 0, "wins": 0}
-        by_sym[sym]["pnl"] += pnl
-        by_sym[sym]["count"] += 1
-        if pnl > 0:
-            by_sym[sym]["wins"] += 1
-
-        total_pnl += pnl
-        total += 1
-        if pnl > 0: wins += 1
-        elif pnl < 0: losses += 1
-
-    cum = 0
-    eq = []
-    for d in sorted(daily_pnl):
-        cum += daily_pnl[d]
-        eq.append({"date": d, "daily_pnl": round(daily_pnl[d], 2), "cumulative": round(cum, 2)})
-
+    # MDD 계산
     peak = 0
     mdd = 0
-    for p in eq:
-        if p["cumulative"] > peak: peak = p["cumulative"]
+    for p in equity_curve:
+        if p["cumulative"] > peak:
+            peak = p["cumulative"]
         dd = peak - p["cumulative"]
-        if dd > mdd: mdd = dd
+        if dd > mdd:
+            mdd = dd
 
-    top = sorted(by_sym.items(), key=lambda x: x[1]["pnl"], reverse=True)
-    top_sym = [{"symbol": s, "pnl": round(v["pnl"], 2), "count": v["count"],
-                "win_rate": round(v["wins"]/v["count"]*100, 1) if v["count"] > 0 else 0}
-               for s, v in top[:10]]
+    # 종목별 순위
+    top = sorted(all_symbols.items(), key=lambda x: x[1]["pnl"], reverse=True)
+    top_symbols = [{"symbol": s, "pnl": round(v["pnl"], 2), "count": v["trades"],
+                    "win_rate": 0} for s, v in top[:10]]
 
-    recent = all_trades[-20:] if len(all_trades) > 20 else all_trades
-    rc = []
-    for t in reversed(recent):
-        pnl = float(t.get("fm_futr_ccld_amt", t.get("fm_ccld_amt", t.get("pnl", 0))) or 0)
-        td = t.get("dt", t.get("ord_dt", ""))
-        sym = t.get("ovrs_futr_fx_pdno", t.get("pdno", ""))
-        time_str = td[:4]+"/"+td[4:6]+"/"+td[6:8] if td and len(td)>=8 else ""
-        rc.append({"symbol": sym, "pnl": round(pnl, 2), "time": time_str})
-
-    wr = round(wins/(wins+losses)*100, 1) if (wins+losses) > 0 else 0
+    # 승/패 (종목 단위)
+    wins = sum(1 for s, v in all_symbols.items() if v["pnl"] > 0)
+    losses = sum(1 for s, v in all_symbols.items() if v["pnl"] < 0)
+    total_trades = sum(v["trades"] for v in all_symbols.values())
+    wr = round(wins / (wins + losses) * 100, 1) if (wins + losses) > 0 else 0
 
     result = {
         "source": "kis",
         "total_pnl": round(total_pnl, 2),
-        "total_trades": total,
+        "total_trades": total_trades,
         "win_rate": wr,
         "win_count": wins,
         "loss_count": losses,
         "max_drawdown": round(mdd, 2),
-        "equity_curve": eq,
-        "top_symbols": top_sym,
-        "recent_trades": rc,
+        "equity_curve": equity_curve,
+        "top_symbols": top_symbols,
+        "recent_trades": [{"symbol": s, "pnl": round(v["pnl"], 2), "time": ""} for s, v in top[:10]],
         "period": f"2026.03.01 ~ {datetime.now(KST).strftime('%Y.%m.%d')}",
         "currency": "USD",
     }
 
     kis_trades_cache["data"] = result
     kis_trades_cache["ts"] = time.time()
-    log.info("한투 매매 처리 완료")
+    log.info("한투 기간손익 처리 완료: 총 PnL=%s USD", total_pnl)
     return result
+
 
 
 # ═══════════════════════════════════════════════════════════════
