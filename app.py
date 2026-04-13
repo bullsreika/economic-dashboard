@@ -208,7 +208,7 @@ def fetch_trades_data() -> dict:
     log.info("바이낸스 매매 기록 조회 시작")
 
     # 2026년 2월 1일부터
-    start_date = datetime(2026, 2, 1, tzinfo=timezone.utc)
+    start_date = datetime(2026, 3, 1, tzinfo=timezone.utc)
     start_ms = int(start_date.timestamp() * 1000)
 
     income_list = fetch_binance_income(start_ms)
