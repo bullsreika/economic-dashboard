@@ -267,7 +267,7 @@ def fetch_kis_trades_data():
     # 해외선물옵션 일별 체결내역 조회
     # 3개월씩 조회 (API 제한)
     all_trades = []
-    start_date = datetime(2026, 3, 1, tzinfo=KST)
+    start_date = datetime(2026, 3, 1)
     end_date = datetime.now(KST)
 
     # 월 단위로 조회
@@ -282,33 +282,30 @@ def fetch_kis_trades_data():
         params = {
             "CANO": cano,
             "ACNT_PRDT_CD": acnt_prdt_cd,
-            "SORT_SQN": "DS",
             "STRT_DT": start_str,
             "END_DT": end_str,
+            "FUOP_DVSN_CD": "01",
+            "FM_PDGR_CD": "",
+            "CRCY_CD": "USD",
+            "FM_ITEM_FTNG_YN": "N",
+            "SLL_BUY_DVSN_CD": "%%",
+            "CTX_AREA_FK200": "",
+            "CTX_AREA_NK200": "",
         }
 
-        # 해외선물옵션 주문체결내역 조회
         data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=params)
 
         if data and data.get("rt_cd") == "0":
-            output = data.get("output", [])
+            output = data.get("output1", [])
             if isinstance(output, list):
                 all_trades.extend(output)
                 log.info("한투 %s~%s: %d건", start_str, end_str, len(output))
-            else:
-                log.warning("한투 output 형식 이상: %s", type(output))
         else:
-            # 다른 tr_id 시도
-            log.warning("JTTT3018R 실패, OTFM3116R 시도")
-            data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-period-ccld", "OTFM3118R", params=params)
-            if data and data.get("rt_cd") == "0":
-                output = data.get("output", [])
-                if isinstance(output, list):
-                    all_trades.extend(output)
-                    log.info("한투 OTFM3116R %s~%s: %d건", start_str, end_str, len(output))
+            msg = data.get("msg1","") if data else "no response"
+            log.warning("한투 API 응답: %s", msg)
 
         current = month_end + timedelta(days=1)
-        time.sleep(0.5)  # API 호출 제한 방지
+        time.sleep(0.5)
 
     log.info("한투 전체 매매 기록: %d건", len(all_trades))
 
@@ -318,9 +315,17 @@ def fetch_kis_trades_data():
         bal_params = {
             "CANO": cano,
             "ACNT_PRDT_CD": acnt_prdt_cd,
-            "WCRC_FRCR_DVSN_CD": "01",
+            "STRT_DT": start_date.strftime("%Y%m%d"),
+            "END_DT": end_date.strftime("%Y%m%d"),
+            "FUOP_DVSN_CD": "01",
+            "FM_PDGR_CD": "",
+            "CRCY_CD": "USD",
+            "FM_ITEM_FTNG_YN": "N",
+            "SLL_BUY_DVSN_CD": "%%",
+            "CTX_AREA_FK200": "",
+            "CTX_AREA_NK200": "",
         }
-        bal_data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-order", "OTFM3120R", params=bal_params)
+        bal_data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=bal_params)
         if bal_data:
             return {
                 "source": "kis",
@@ -341,9 +346,9 @@ def fetch_kis_trades_data():
 
     for trade in all_trades:
         # 필드명은 API 응답에 따라 다를 수 있음
-        pnl = float(trade.get("rlzt_pl", trade.get("fuop_rlzt_pfls_amt", trade.get("pnl", 0))) or 0)
-        trade_date = trade.get("ord_dt", trade.get("ccld_dt", trade.get("trad_dt", "")))
-        sym = trade.get("pdno", trade.get("fuop_prdt_cd", trade.get("shtn_pdno", "UNKNOWN")))
+        pnl = float(trade.get("fm_futr_ccld_amt", trade.get("fm_ccld_amt", trade.get("pnl", 0))) or 0)
+        trade_date = trade.get("dt", trade.get("ord_dt", ""))
+        sym = trade.get("ovrs_futr_fx_pdno", trade.get("pdno", "UNKNOWN"))
 
         if trade_date and len(trade_date) >= 8:
             ds = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:8]}"
@@ -384,9 +389,9 @@ def fetch_kis_trades_data():
     recent = all_trades[-20:] if len(all_trades) > 20 else all_trades
     rc = []
     for t in reversed(recent):
-        pnl = float(t.get("rlzt_pl", t.get("fuop_rlzt_pfls_amt", t.get("pnl", 0))) or 0)
-        td = t.get("ord_dt", t.get("ccld_dt", ""))
-        sym = t.get("pdno", t.get("fuop_prdt_cd", t.get("shtn_pdno", "")))
+        pnl = float(t.get("fm_futr_ccld_amt", t.get("fm_ccld_amt", t.get("pnl", 0))) or 0)
+        td = t.get("dt", t.get("ord_dt", ""))
+        sym = t.get("ovrs_futr_fx_pdno", t.get("pdno", ""))
         time_str = td[:4]+"/"+td[4:6]+"/"+td[6:8] if td and len(td)>=8 else ""
         rc.append({"symbol": sym, "pnl": round(pnl, 2), "time": time_str})
 
