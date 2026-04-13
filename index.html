@@ -420,8 +420,8 @@ async function fetchFearGreed() {
       const badge=document.getElementById("fngBadge");
       badge.textContent=label; badge.style.background=bg; badge.style.color=color;
       document.getElementById("fngBanner").style.borderColor=color;
-      const angle=-90+(v/100)*180; const rad=angle*Math.PI/180;
-      const nx=60+42*Math.cos(rad); const ny=65+42*Math.sin(rad);
+      const angle=180-(v/100)*180; const rad=angle*Math.PI/180;
+      const nx=60+42*Math.cos(rad); const ny=65-42*Math.sin(rad);
       const needle=document.getElementById("fngNeedle");
       needle.setAttribute("x2",nx); needle.setAttribute("y2",ny);
     }
