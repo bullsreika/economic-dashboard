@@ -267,7 +267,7 @@ def fetch_kis_trades_data():
     # 해외선물옵션 일별 체결내역 조회
     # 3개월씩 조회 (API 제한)
     all_trades = []
-    start_date = datetime(2026, 3, 1)
+    start_date = datetime(2026, 3, 1, tzinfo=KST)
     end_date = datetime.now(KST)
 
     # 월 단위로 조회
