@@ -288,7 +288,7 @@ def fetch_kis_trades_data():
         }
 
         # 해외선물옵션 주문체결내역 조회
-        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-ccld", "JTTT3018R", params=params)
+        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=params)
 
         if data and data.get("rt_cd") == "0":
             output = data.get("output", [])
@@ -300,7 +300,7 @@ def fetch_kis_trades_data():
         else:
             # 다른 tr_id 시도
             log.warning("JTTT3018R 실패, OTFM3116R 시도")
-            data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-ccld", "OTFM3116R", params=params)
+            data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-period-ccld", "OTFM3118R", params=params)
             if data and data.get("rt_cd") == "0":
                 output = data.get("output", [])
                 if isinstance(output, list):
@@ -320,7 +320,7 @@ def fetch_kis_trades_data():
             "ACNT_PRDT_CD": acnt_prdt_cd,
             "WCRC_FRCR_DVSN_CD": "01",
         }
-        bal_data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-balance", "JTTT3012R", params=bal_params)
+        bal_data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-order", "OTFM3120R", params=bal_params)
         if bal_data:
             return {
                 "source": "kis",
@@ -514,7 +514,7 @@ async def kis_debug():
         acct = KIS_ACCOUNT_NO.split("-")
         if len(acct) == 2:
             params = {"CANO": acct[0], "ACNT_PRDT_CD": acct[1], "WCRC_FRCR_DVSN_CD": "01"}
-            bal = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-balance", "JTTT3012R", params=params)
+            bal = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-order", "OTFM3120R", params=params)
             if bal:
                 results["balance_api"] = bal.get("rt_cd", "unknown")
                 results["balance_msg"] = bal.get("msg1", "")[:200]
