@@ -286,7 +286,7 @@ def fetch_kis_trades_data():
             "INQR_TERM_TO_DT": end_str,
             "CRCY_CD": "USD",
             "WHOL_TRSL_YN": "N",
-            "FUOP_DVSN": "01",
+            "FUOP_DVSN": "00",
             "CTX_AREA_FK200": "",
             "CTX_AREA_NK200": "",
         }
