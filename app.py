@@ -275,7 +275,7 @@ def fetch_kis_trades_data():
 
     current = start_date
     while current < end_date:
-        week_end = min(current + timedelta(days=6), end_date)
+        week_end = min(current + timedelta(days=30), end_date)
         start_str = current.strftime("%Y%m%d")
         end_str = week_end.strftime("%Y%m%d")
 
