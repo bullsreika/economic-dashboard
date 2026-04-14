@@ -310,22 +310,25 @@ def fetch_kis_trades_data():
                     "cumulative": round(cumulative, 2),
                 })
 
-            # output2: 종목별 상세
+           # output2: 종목별 상세 (월물 합산)
+            PRODUCT_NAMES = {"MES":"Micro S&P500", "MNQ":"Micro Nasdaq", "MGC":"Micro Gold", "NQ":"Nasdaq", "ES":"S&P500", "GC":"Gold"}
             output2 = data.get("output2", [])
             for item in output2:
                 sym = item.get("ovrs_futr_fx_pdno", "UNKNOWN")
                 if not sym or sym == "UNKNOWN":
                     continue
+                base = sym[:-3] if len(sym) > 3 else sym
+                display_name = PRODUCT_NAMES.get(base, base)
                 net = float(item.get("fm_lqd_pfls_amt", 0) or 0)
                 fee = float(item.get("fm_fee", 0) or 0)
                 buy_qty = int(item.get("fm_buy_qty", 0) or 0)
                 sll_qty = int(item.get("fm_sll_qty", 0) or 0)
                 sym_pnl = net - abs(fee)
 
-                if sym not in all_symbols:
-                    all_symbols[sym] = {"pnl": 0, "trades": 0}
-                all_symbols[sym]["pnl"] += sym_pnl
-                all_symbols[sym]["trades"] += buy_qty + sll_qty
+                if display_name not in all_symbols:
+                    all_symbols[display_name] = {"pnl": 0, "trades": 0}
+                all_symbols[display_name]["pnl"] += sym_pnl
+                all_symbols[display_name]["trades"] += buy_qty + sll_qty
         else:
             msg = data.get("msg1", "") if data else "no response"
             log.warning("한투 기간손익 %s~%s: %s", start_str, end_str, msg)
