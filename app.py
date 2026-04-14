@@ -332,7 +332,9 @@ def fetch_kis_trades_data():
 
         current = week_end + timedelta(days=1)
         time.sleep(0.3)
-
+    # 시작점 추가 (수익 곡선이 0부터 시작하도록)
+    if equity_curve:
+        equity_curve.insert(0, {"date": "2026-03-01", "daily_pnl": 0, "cumulative": 0})
     total_pnl = cumulative
 
     # MDD 계산
