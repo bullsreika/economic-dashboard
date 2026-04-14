@@ -198,7 +198,7 @@
   <div class="tab-page" id="page-kis">
     <div class="section-label" style="margin-bottom:12px;">
       <span class="section-dot" style="background:var(--purple);"></span>
-      <span>해외선물 트레이딩 성과</span>
+      <span id="kisTitle">해외선물 트레이딩 성과</span>
       <span style="margin-left:auto; font-size:10px; color:var(--text3);" id="kisPeriod"></span>
     </div>
     <div id="kisContainer"><div class="loading"><div class="spinner"></div><br>한투 매매 기록을 불러오는 중...</div></div>
@@ -303,7 +303,7 @@ async function fetchMarket(){try{const r=await fetch(API_BASE+"/api/market");con
 async function fetchNews(){try{const r=await fetch(API_BASE+"/api/news");const j=await r.json();renderNews(j.articles,j.updated_at);}catch(e){console.error(e);}}
 async function fetchFearGreed(){try{const r=await fetch(API_BASE+"/api/feargreed");const j=await r.json();if(j.value!=null){const v=j.value;document.getElementById("fngBanner").style.display="flex";document.getElementById("fngValue").textContent=v;let l,bg,c;if(v<25){l="극도 공포";bg="rgba(248,81,73,0.15)";c="#f85149";}else if(v<50){l="공포";bg="rgba(240,136,62,0.15)";c="#f0883e";}else if(v<75){l="탐욕";bg="rgba(210,153,34,0.15)";c="#d29922";}else{l="극도 탐욕";bg="rgba(63,185,80,0.15)";c="#3fb950";}const b=document.getElementById("fngBadge");b.textContent=l;b.style.background=bg;b.style.color=c;document.getElementById("fngBanner").style.borderColor=c;const angle=180-(v/100)*180;const rad=angle*Math.PI/180;document.getElementById("fngNeedle").setAttribute("x2",60+42*Math.cos(rad));document.getElementById("fngNeedle").setAttribute("y2",65-42*Math.sin(rad));}}catch(e){console.error(e);}}
 async function fetchTrades(){try{const r=await fetch(API_BASE+"/api/trades");const j=await r.json();renderTrading(j,"binanceContainer","binancePeriod","binanceChart");}catch(e){console.error(e);document.getElementById("binanceContainer").innerHTML='<div class="no-data">매매 기록을 불러오지 못했습니다.</div>';}}
-async function fetchKisTrades(){try{const r=await fetch(API_BASE+"/api/kis-trades");const r=await fetch(API_BASE+"/api/kis-trades");const j=await r.json();if(j.top_symbols&&j.top_symbols.length>0){document.getElementById("kisTitle").textContent=j.top_symbols.map(s=>s.symbol).join(" / ")+" 트레이딩 성과";}renderTrading(j,"kisContainer","kisPeriod","kisChart");}catch(e){console.error(e);document.getElementById("kisContainer").innerHTML='<div class="no-data">매매 기록을 불러오지 못했습니다.</div>';}}
+async function fetchKisTrades(){try{const kr=await fetch(API_BASE+"/api/kis-trades");const kj=await kr.json();if(kj.top_symbols&&kj.top_symbols.length>0){document.getElementById("kisTitle").textContent=kj.top_symbols.map(s=>s.symbol).join(" / ")+" 트레이딩 성과";}renderTrading(kj,"kisContainer","kisPeriod","kisChart");}catch(e){console.error(e);document.getElementById("kisContainer").innerHTML='<div class="no-data">매매 기록을 불러오지 못했습니다.</div>';}}
 
 function refreshAll(){fetchMarket();fetchNews();fetchFearGreed();if(binanceLoaded)fetchTrades();if(kisLoaded)fetchKisTrades();}
 
