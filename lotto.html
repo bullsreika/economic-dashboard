@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>행운의 숫자 — 로또 번호 생성기 | systrade.co.kr</title>
+  <meta name="description" content="10년치(540회차) 1등 당첨번호 통계를 기반으로 번호를 추천해드립니다. HOT 4개 + SMART 2개 조합 방식." />
+  <meta name="keywords" content="로또, 로또번호생성기, 로또번호추천, 당첨번호, 통계, 로또분석" />
+
+  <meta property="og:title" content="행운의 숫자 — 로또 번호 생성기" />
+  <meta property="og:description" content="10년치 1등 당첨번호 통계 기반 로또 번호 생성기" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎰%3C/text%3E%3C/svg%3E" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Standalone (JSX in browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #05060C; min-height: 100vh; }
+
+    @keyframes lottoPop {
+      0% { transform: scale(0.3) rotate(-180deg); opacity: 0; }
+      60% { transform: scale(1.1) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .lotto-pop { animation: lottoPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+    @keyframes fadeUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+
+    /* 로딩 상태 */
+    #root:empty::before {
+      content: "로딩 중";
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #F4C430;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.3em;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    summary::-webkit-details-marker { display: none; }
+    summary { list-style: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useEffect } = React;
+
+    // ===== 10년치 로또 1등 당첨번호 통계 =====
+    // 680~1219회 (2015-12-12 ~ 2026-04-11, 540회차)
+    const PRELOADED_FREQUENCY = [
+      0, 69, 66, 82, 63, 55, 80, 77, 59, 62, 72,
+      74, 88, 80, 69, 77, 83, 70, 77, 78, 58, 83,
+      63, 64, 76, 57, 67, 74, 78, 69, 78, 71, 61,
+      86, 77, 76, 73, 69, 85, 74, 61, 66, 71, 70, 70, 82
+    ];
+    const PRELOADED_DRAW_COUNT = 540;
+    const PRELOADED_RANGE = "680~1219회 · 2015.12~2026.04";
+
+    // ===== 인라인 SVG 아이콘 =====
+    const Ic = ({ d, className = "", style = {} }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style} dangerouslySetInnerHTML={{__html: d}} />
+    );
+    const Sparkles = (p) => <Ic {...p} d='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>' />;
+    const Flame = (p) => <Ic {...p} d='<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>' />;
+    const Snowflake = (p) => <Ic {...p} d='<path d="M2 12h20"/><path d="M12 2v20"/><path d="m4.93 4.93 14.14 14.14"/><path d="m19.07 4.93-14.14 14.14"/><path d="M16 6l-4 4-4-4"/><path d="M16 18l-4-4-4 4"/><path d="m6 16 4-4-4-4"/><path d="m18 16-4-4 4-4"/>' />;
+    const Scale = (p) => <Ic {...p} d='<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>' />;
+    const Dice = (p) => <Ic {...p} d='<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>' />;
+    const Target = (p) => <Ic {...p} d='<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' />;
+    const RefreshIcon = (p) => <Ic {...p} d='<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>' />;
+    const FileText = (p) => <Ic {...p} d='<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>' />;
+    const Trash = (p) => <Ic {...p} d='<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>' />;
+    const TrendingUp = (p) => <Ic {...p} d='<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>' />;
+
+    function LottoGenerator() {
+      const [pastData, setPastData] = useState("");
+      const [parsedDraws, setParsedDraws] = useState([]);
+      const [useUserData, setUseUserData] = useState(false);
+      const [generatedSets, setGeneratedSets] = useState([]);
+      const [mode, setMode] = useState("hotsmart");
+      const [setCount, setSetCount] = useState(5);
+      const [animKey, setAnimKey] = useState(0);
+
+      const parseData = (text) => {
+        const lines = text.split(/\r?\n/);
+        const draws = [];
+        for (const line of lines) {
+          const nums = (line.match(/\d+/g) || []).map(Number);
+          const valid = nums.filter((n) => n >= 1 && n <= 45);
+          const unique = [...new Set(valid)];
+          if (unique.length >= 6) draws.push(unique.slice(0, 6).sort((a, b) => a - b));
+        }
+        return draws;
+      };
+
+      const handleParse = () => {
+        const draws = parseData(pastData);
+        setParsedDraws(draws);
+        setUseUserData(draws.length > 0);
+        setGeneratedSets([]);
+      };
+
+      const clearUserData = () => {
+        setPastData("");
+        setParsedDraws([]);
+        setUseUserData(false);
+        setGeneratedSets([]);
+      };
+
+      const frequency = useMemo(() => {
+        if (useUserData && parsedDraws.length > 0) {
+          const freq = new Array(46).fill(0);
+          parsedDraws.forEach((draw) => draw.forEach((n) => freq[n]++));
+          return freq;
+        }
+        return PRELOADED_FREQUENCY;
+      }, [useUserData, parsedDraws]);
+
+      const drawCount = useUserData && parsedDraws.length > 0 ? parsedDraws.length : PRELOADED_DRAW_COUNT;
+      const rangeLabel = useUserData && parsedDraws.length > 0 ? `${parsedDraws.length}회차` : PRELOADED_RANGE;
+
+      const stats = useMemo(() => {
+        const slice = frequency.slice(1);
+        const maxFreq = Math.max(...slice);
+        const minFreq = Math.min(...slice);
+        const hottest = [], coldest = [];
+        for (let i = 1; i <= 45; i++) {
+          if (frequency[i] === maxFreq) hottest.push(i);
+          if (frequency[i] === minFreq) coldest.push(i);
+        }
+        const sortedByFreq = Array.from({ length: 45 }, (_, i) => ({ num: i + 1, freq: frequency[i + 1] })).sort((a, b) => b.freq - a.freq);
+        const hotPool12 = sortedByFreq.slice(0, 12);
+        return { maxFreq, minFreq, hottest, coldest, hotPool12 };
+      }, [frequency]);
+
+      const weightedPick = (candidates, excluded = new Set()) => {
+        const available = candidates.filter((c) => !excluded.has(c.num));
+        const total = available.reduce((s, c) => s + c.weight, 0);
+        let r = Math.random() * total;
+        for (const c of available) {
+          r -= c.weight;
+          if (r <= 0) return c.num;
+        }
+        return available[available.length - 1].num;
+      };
+
+      const generateHotSmart = () => {
+        const excluded = new Set();
+        const hotPicks = [];
+        for (let i = 0; i < 4; i++) {
+          const candidates = stats.hotPool12.map((p) => ({ num: p.num, weight: p.freq }));
+          const picked = weightedPick(candidates, excluded);
+          hotPicks.push(picked);
+          excluded.add(picked);
+        }
+        const ranges = [[1, 10], [11, 20], [21, 30], [31, 40], [41, 45]];
+        const rangeOf = (n) => ranges.findIndex((r) => n >= r[0] && n <= r[1]);
+        const covered = new Set(hotPicks.map(rangeOf));
+        const bottom3 = Array.from({ length: 45 }, (_, i) => i + 1).sort((a, b) => frequency[a] - frequency[b]).slice(0, 3);
+        const veryCold = new Set(bottom3);
+        const smartPicks = [];
+        for (let i = 0; i < 2; i++) {
+          const candidates = [];
+          for (let n = 1; n <= 45; n++) {
+            if (excluded.has(n)) continue;
+            const rIdx = rangeOf(n);
+            let weight = covered.has(rIdx) ? 1.0 : 2.5;
+            if (veryCold.has(n)) weight *= 0.5;
+            candidates.push({ num: n, weight });
+          }
+          const picked = weightedPick(candidates);
+          smartPicks.push(picked);
+          excluded.add(picked);
+          covered.add(rangeOf(picked));
+        }
+        return { hot: hotPicks, smart: smartPicks, all: [...hotPicks, ...smartPicks].sort((a, b) => a - b) };
+      };
+
+      const generateWeighted = () => {
+        const weights = new Array(46).fill(0);
+        const maxFreq = stats.maxFreq || 1;
+        for (let i = 1; i <= 45; i++) {
+          if (mode === "random") weights[i] = 1;
+          else if (mode === "hot") weights[i] = 0.2 + frequency[i];
+          else if (mode === "cold") weights[i] = 0.2 + (maxFreq - frequency[i] + 1);
+          else if (mode === "balanced") weights[i] = 0.4 + 0.6 * (frequency[i] / maxFreq);
+        }
+        const picked = [];
+        while (picked.length < 6) {
+          let total = 0;
+          for (let i = 1; i <= 45; i++) if (!picked.includes(i)) total += weights[i];
+          let r = Math.random() * total;
+          for (let i = 1; i <= 45; i++) {
+            if (picked.includes(i)) continue;
+            r -= weights[i];
+            if (r <= 0) { picked.push(i); break; }
+          }
+        }
+        return { hot: [], smart: [], all: picked.sort((a, b) => a - b) };
+      };
+
+      const handleGenerate = () => {
+        const sets = [];
+        for (let i = 0; i < setCount; i++) {
+          sets.push(mode === "hotsmart" ? generateHotSmart() : generateWeighted());
+        }
+        setGeneratedSets(sets);
+        setAnimKey((k) => k + 1);
+      };
+
+      const getBallColor = (num) => {
+        if (num <= 10) return { bg: "#FBC400", shadow: "#C99900" };
+        if (num <= 20) return { bg: "#69C8F2", shadow: "#3A8BAF" };
+        if (num <= 30) return { bg: "#FF7272", shadow: "#C44848" };
+        if (num <= 40) return { bg: "#8B8B8B", shadow: "#555555" };
+        return { bg: "#B0D840", shadow: "#7FA024" };
+      };
+
+      const Ball = ({ num, size = "md", delay = 0, tag = null }) => {
+        const c = getBallColor(num);
+        const sizes = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 sm:w-12 sm:h-12 text-sm sm:text-base" };
+        return (
+          <div className="relative shrink-0 lotto-pop" style={{ animationDelay: `${delay}ms` }}>
+            <div className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white`}
+              style={{
+                background: `radial-gradient(circle at 32% 28%, #ffffff66, ${c.bg} 35%, ${c.shadow} 100%)`,
+                boxShadow: `inset -2px -3px 5px rgba(0,0,0,0.22), 0 3px 10px rgba(0,0,0,0.45), 0 0 18px ${c.bg}30`,
+                textShadow: "0 1px 2px rgba(0,0,0,0.45)",
+              }}>
+              {num}
+            </div>
+            {tag && (
+              <span className="absolute -top-1.5 -right-1 text-[8px] font-bold px-1 py-[1px] rounded tracking-wider"
+                style={{ background: tag === "HOT" ? "#FF4D4D" : "#6BB5FF", color: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
+                {tag}
+              </span>
+            )}
+          </div>
+        );
+      };
+
+      const modeConfig = {
+        hotsmart: { label: "4+2", subtitle: "HOT 4개 + SMART 2개", icon: Target, color: "#F4C430" },
+        hot: { label: "HOT", subtitle: "자주 나온 번호 6개", icon: Flame, color: "#FF6B6B" },
+        cold: { label: "COLD", subtitle: "안 나온 번호 6개", icon: Snowflake, color: "#6BB5FF" },
+        balanced: { label: "BALANCED", subtitle: "통계 + 랜덤 혼합", icon: Scale, color: "#B0D840" },
+        random: { label: "RANDOM", subtitle: "완전 랜덤", icon: Dice, color: "#B8B8B8" },
+      };
+
+      return (
+        <div className="min-h-screen relative overflow-hidden text-white"
+          style={{
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+            background: "radial-gradient(ellipse at top, #1A1530 0%, #0A0E1A 55%, #05060C 100%)",
+          }}>
+          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-25 pointer-events-none" style={{ background: "radial-gradient(circle, #F4C430, transparent 70%)" }} />
+          <div className="absolute bottom-20 right-0 w-[500px] h-[500px] rounded-full blur-3xl opacity-15 pointer-events-none" style={{ background: "radial-gradient(circle, #FF7272, transparent 70%)" }} />
+          <div className="absolute top-1/3 right-1/3 w-72 h-72 rounded-full blur-3xl opacity-10 pointer-events-none" style={{ background: "radial-gradient(circle, #69C8F2, transparent 70%)" }} />
+
+          <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 relative z-10">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/5 mb-5">
+                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-[10px] sm:text-xs tracking-[0.2em] uppercase text-yellow-200/90 font-medium">Lotto 6 / 45</span>
+              </div>
+              <h1 className="text-5xl sm:text-7xl leading-[0.95] mb-4" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "-0.02em" }}>
+                행운의 <span className="italic text-yellow-400">숫자</span>
+              </h1>
+              <p className="text-sm sm:text-base text-neutral-400 font-light tracking-wide">
+                {rangeLabel}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1 tabular-nums">
+                총 {drawCount}회 당첨번호 분석 · 약 10.4년치 데이터
+              </p>
+            </div>
+
+            <section className="mb-6 border border-white/10 rounded-2xl p-5 sm:p-6 bg-white/[0.02] backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-yellow-400" />
+                  <h2 className="text-xs uppercase tracking-[0.2em] text-neutral-300 font-semibold">출현 빈도 히트맵</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-9 gap-1 sm:gap-1.5 mb-5">
+                {Array.from({ length: 45 }, (_, i) => i + 1).map((num) => {
+                  const freq = frequency[num];
+                  const intensity = stats.maxFreq > 0 ? freq / stats.maxFreq : 0;
+                  const c = getBallColor(num);
+                  return (
+                    <div key={num} className="aspect-square rounded-md flex flex-col items-center justify-center relative"
+                      style={{
+                        background: `linear-gradient(135deg, ${c.bg}${Math.round(intensity * 220 + 15).toString(16).padStart(2, "0")}, ${c.shadow}${Math.round(intensity * 180 + 15).toString(16).padStart(2, "0")})`,
+                        border: `1px solid ${c.bg}${Math.round(intensity * 140 + 30).toString(16).padStart(2, "0")}`,
+                      }}>
+                      <span className="text-[11px] sm:text-xs font-bold tabular-nums leading-none">{num}</span>
+                      <span className="text-[8px] sm:text-[9px] text-white/70 tabular-nums leading-none mt-0.5">{freq}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="border border-white/5 rounded-lg p-3 bg-black/20">
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-[0.15em] mb-1">분석 회차</div>
+                  <div className="text-2xl sm:text-3xl font-semibold tabular-nums" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{drawCount}</div>
+                </div>
+                <div className="border border-white/5 rounded-lg p-3 bg-black/20">
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-[0.15em] mb-2 flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-red-400" /> 최다
+                  </div>
+                  <div className="flex flex-wrap gap-1">{stats.hottest.slice(0, 3).map((n) => <Ball key={n} num={n} size="sm" />)}</div>
+                </div>
+                <div className="border border-white/5 rounded-lg p-3 bg-black/20">
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-[0.15em] mb-2 flex items-center gap-1">
+                    <Snowflake className="w-3 h-3 text-blue-400" /> 최소
+                  </div>
+                  <div className="flex flex-wrap gap-1">{stats.coldest.slice(0, 3).map((n) => <Ball key={n} num={n} size="sm" />)}</div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-6 border border-white/10 rounded-2xl p-5 sm:p-6 bg-white/[0.02] backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles className="w-4 h-4 text-yellow-400" />
+                <h2 className="text-xs uppercase tracking-[0.2em] text-neutral-300 font-semibold">번호 생성</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+                {Object.entries(modeConfig).map(([key, cfg]) => {
+                  const IconC = cfg.icon;
+                  const active = mode === key;
+                  const featured = key === "hotsmart";
+                  return (
+                    <button key={key} onClick={() => setMode(key)}
+                      className={`p-3 rounded-xl border transition text-left relative ${active ? "border-yellow-400/70 bg-yellow-500/10" : "border-white/10 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.04]"} ${featured && !active ? "border-yellow-500/30" : ""}`}>
+                      {featured && !active && <span className="absolute -top-2 -right-1 text-[8px] bg-yellow-500 text-black font-bold px-1.5 py-[2px] rounded tracking-wider">추천</span>}
+                      <IconC className="w-4 h-4 mb-1.5" style={{ color: active ? cfg.color : "#888" }} />
+                      <div className={`text-[11px] font-bold tracking-[0.1em] ${active ? "text-yellow-100" : "text-neutral-300"}`}>{cfg.label}</div>
+                      <div className="text-[10px] text-neutral-500 mt-0.5 leading-tight">{cfg.subtitle}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {mode === "hotsmart" && (
+                <div className="mb-5 p-3.5 rounded-lg bg-yellow-500/5 border border-yellow-500/20 text-[11px] sm:text-xs text-neutral-300 leading-relaxed">
+                  <div className="flex items-start gap-2">
+                    <Target className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-yellow-200 font-semibold">HOT 4개</span> — TOP 12 최다 출현 번호에서 빈도 가중치로 4개 자동 선택 ·{" "}
+                      <span className="text-blue-300 font-semibold">SMART 2개</span> — HOT이 커버 못한 색상 구간 우선, 나머지 중에서 2개 스마트 추천
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] text-neutral-400 uppercase tracking-[0.2em] font-medium">생성 개수</span>
+                  <span className="text-base text-yellow-400 font-bold tabular-nums">{setCount}세트</span>
+                </div>
+                <input type="range" min="1" max="10" value={setCount} onChange={(e) => setSetCount(Number(e.target.value))} className="w-full accent-yellow-500" />
+              </div>
+
+              <button onClick={handleGenerate}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-bold tracking-[0.15em] transition flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/30"
+                style={{ backgroundSize: "200% 100%" }}>
+                <RefreshIcon className="w-4 h-4" />
+                번호 생성하기
+              </button>
+            </section>
+
+            {generatedSets.length > 0 && (
+              <section key={animKey} className="mb-6 border border-yellow-500/25 rounded-2xl p-5 sm:p-6 bg-gradient-to-b from-yellow-500/[0.04] to-transparent fade-up">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <h2 className="text-xs uppercase tracking-[0.2em] text-yellow-200 font-semibold">생성된 번호</h2>
+                  </div>
+                  <span className="text-neutral-500 tracking-[0.1em]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "0.85rem" }}>
+                    {modeConfig[mode].label} mode
+                  </span>
+                </div>
+                {mode === "hotsmart" && (
+                  <div className="flex flex-wrap gap-3 mb-4 text-[10px] sm:text-xs text-neutral-400">
+                    <div className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full" style={{ background: "#FF4D4D" }} /><span>HOT (통계 기반)</span></div>
+                    <div className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full" style={{ background: "#6BB5FF" }} /><span>SMART (구간 보완 랜덤)</span></div>
+                  </div>
+                )}
+                <div className="space-y-2.5">
+                  {generatedSets.map((set, idx) => {
+                    const hotSet = new Set(set.hot);
+                    const smartSet = new Set(set.smart);
+                    return (
+                      <div key={`${animKey}-${idx}`} className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-black/30">
+                        <div className="text-neutral-500 tabular-nums w-7 shrink-0 text-right" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "1.15rem", fontStyle: "italic" }}>
+                          {String(idx + 1).padStart(2, "0")}
+                        </div>
+                        <div className="flex gap-1.5 sm:gap-2.5 flex-1 flex-wrap">
+                          {set.all.map((num, i) => {
+                            let tag = null;
+                            if (mode === "hotsmart") {
+                              if (hotSet.has(num)) tag = "HOT";
+                              else if (smartSet.has(num)) tag = "SMART";
+                            }
+                            return <Ball key={num} num={num} size="md" delay={idx * 100 + i * 60} tag={tag} />;
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            <details className="mb-6 border border-white/10 rounded-2xl bg-white/[0.02] backdrop-blur-sm">
+              <summary className="flex items-center gap-2 p-5 sm:p-6 cursor-pointer">
+                <FileText className="w-4 h-4 text-neutral-400" />
+                <span className="text-xs uppercase tracking-[0.2em] text-neutral-400 font-semibold">직접 데이터 입력 (고급)</span>
+                <span className="ml-auto text-[10px] text-neutral-600">▼</span>
+              </summary>
+              <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+                <p className="text-[11px] text-neutral-500 mb-3 leading-relaxed">
+                  다른 기간의 데이터로 분석하려면 아래에 붙여넣어 주세요 (한 줄에 한 회차, 숫자 6개 이상).
+                </p>
+                <textarea value={pastData} onChange={(e) => setPastData(e.target.value)}
+                  placeholder={"1, 12, 23, 34, 40, 45\n3 8 17 22 28 36"}
+                  className="w-full h-28 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-yellow-500/50 transition resize-none"
+                  style={{ fontFamily: "'SF Mono', Menlo, monospace" }} />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button onClick={handleParse} disabled={!pastData.trim()}
+                    className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 disabled:bg-neutral-800 disabled:text-neutral-600 text-black text-sm font-bold tracking-wide transition">
+                    내 데이터로 분석
+                  </button>
+                  {useUserData && (
+                    <button onClick={clearUserData} className="px-3 py-2 rounded-lg border border-white/10 hover:border-red-500/40 text-neutral-500 hover:text-red-400 text-sm transition flex items-center gap-1.5">
+                      <Trash className="w-3.5 h-3.5" /> 기본으로 복귀
+                    </button>
+                  )}
+                </div>
+                {useUserData && <p className="text-[11px] text-yellow-400/90 mt-2">✓ 사용자 데이터 {parsedDraws.length}회차 적용 중</p>}
+              </div>
+            </details>
+
+            <div className="text-center text-[11px] text-neutral-600 leading-relaxed px-4 pt-4 border-t border-white/5">
+              <p>로또 추첨은 본질적으로 무작위이므로 과거 데이터로 미래를 예측할 수 없습니다.</p>
+              <p>재미와 참고용으로만 사용해주세요.</p>
+              <p className="mt-3 text-neutral-700">
+                © {new Date().getFullYear()} <a href="https://systrade.co.kr" className="hover:text-yellow-400/70 transition">systrade.co.kr</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<LottoGenerator />);
+  </script>
+</body>
+</html>
