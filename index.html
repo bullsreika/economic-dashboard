@@ -328,7 +328,9 @@ function renderTrading(data, containerId, periodId, chartId) {
     h+=`<div id="${tid}">`;
     for(const t of data.recent_trades){
       const c=t.pnl>=0?"var(--green)":"var(--red)";const sg=t.pnl>=0?"+":"";
-      h+=`<div class="trade-row" data-sym="${t.symbol}"><span style="font-family:var(--mono);font-weight:500;min-width:120px;">${t.symbol}</span><span style="color:var(--text3);min-width:90px;">${t.time}</span><span style="color:${c};font-family:var(--mono);margin-left:auto;">${sg}${t.pnl.toFixed(2)}</span></div>`;
+      const sideColor = t.side==="매수"?"var(--green)":t.side==="매도"?"var(--red)":"var(--text3)";
+      const qtyText = t.qty && t.qty!=="0" ? t.qty+"계약" : "";
+      h+=`<div class="trade-row" data-sym="${t.symbol}"><span style="font-family:var(--mono);font-weight:500;min-width:120px;">${t.symbol}</span><span style="color:${sideColor};min-width:50px;font-size:11px;">${t.side||""}</span><span style="color:var(--text2);min-width:50px;font-size:11px;">${qtyText}</span><span style="color:var(--text3);margin-left:auto;">${t.time}</span></div>`;
     }
     h+=`</div></div>`;
   }
