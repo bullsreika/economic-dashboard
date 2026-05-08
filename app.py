@@ -497,6 +497,15 @@ async def kis_debug():
 async def get_status():
     return {"status":"running","binance":bool(BINANCE_API_KEY),"kis":bool(KIS_APP_KEY),"kis_account":KIS_ACCOUNT_NO,"market_cached":market_cache["ts"]>0,"news_count":len(news_cache["articles"])}
 
+@app.get("/api/myip")
+async def get_my_ip():
+    """서버 외부 IP 확인"""
+    try:
+        resp = req.get("https://api.ipify.org?format=json", timeout=5)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+        
 @app.get("/api/debug")
 async def debug():
     results = {}
