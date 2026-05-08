@@ -316,21 +316,36 @@ function renderTrading(data, containerId, periodId, chartId) {
     }
     h+=`</tbody></table></div>`;
   }
-  // 거래 내역 조회
+  // 거래 내역 조회 (날짜 선택 + 종목 필터)
   if(data.recent_trades&&data.recent_trades.length>0){
     const tid=containerId+"_trades";
     const symbols=[...new Set(data.recent_trades.map(t=>t.symbol))];
-    h+=`<div class="col-box"><div class="col-box-title">거래 내역</div>`;
+    h+=`<div class="col-box"><div class="col-box-title">거래 내역 조회</div>`;
+    h+=`<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">`;
+    h+=`<input type="date" id="${tid}_from" value="2026-03-01" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:12px;font-family:var(--sans);">`;
+    h+=`<span style="color:var(--text3);font-size:12px;">~</span>`;
+    h+=`<input type="date" id="${tid}_to" value="${new Date().toISOString().slice(0,10)}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:12px;font-family:var(--sans);">`;
+    h+=`<button class="filter-btn active" onclick="filterTradesByDate('${tid}')">조회</button>`;
+    h+=`</div>`;
     h+=`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">`;
     h+=`<button class="filter-btn active" onclick="filterTrades('${tid}','all',this)">전체</button>`;
     for(const s of symbols){h+=`<button class="filter-btn" onclick="filterTrades('${tid}','${s}',this)">${s}</button>`;}
     h+=`</div>`;
+    h+=`<div style="display:flex;padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);font-weight:500;">`;
+    h+=`<span style="min-width:110px;">종목</span><span style="min-width:40px;">방향</span><span style="min-width:50px;">수량</span><span style="min-width:100px;">진입</span><span style="min-width:100px;">청산</span><span style="margin-left:auto;">손익</span></div>`;
     h+=`<div id="${tid}">`;
     for(const t of data.recent_trades){
       const c=t.pnl>=0?"var(--green)":"var(--red)";const sg=t.pnl>=0?"+":"";
-      const sideColor = t.side==="매수"?"var(--green)":t.side==="매도"?"var(--red)":"var(--text3)";
-      const qtyText = t.qty && t.qty!=="0" ? t.qty+"계약" : "";
-      h+=`<div class="trade-row" data-sym="${t.symbol}"><span style="font-family:var(--mono);font-weight:500;min-width:120px;">${t.symbol}</span><span style="color:${sideColor};min-width:50px;font-size:11px;">${t.side||""}</span><span style="color:var(--text2);min-width:50px;font-size:11px;">${qtyText}</span><span style="color:var(--text3);margin-left:auto;">${t.time}</span></div>`;
+      const dirColor=(t.direction||"")==="롱"?"var(--green)":"var(--red)";
+      const qtyText=t.qty?t.qty+"계약":"";
+      h+=`<div class="trade-row" data-sym="${t.symbol}" data-date="${t.date||""}" style="font-size:12px;">`;
+      h+=`<span style="font-family:var(--mono);font-weight:500;min-width:110px;">${t.symbol}</span>`;
+      h+=`<span style="color:${dirColor};min-width:40px;font-size:11px;">${t.direction||""}</span>`;
+      h+=`<span style="color:var(--text2);min-width:50px;font-size:11px;">${qtyText}</span>`;
+      h+=`<span style="color:var(--text3);min-width:100px;font-size:11px;">${t.open_time||""}</span>`;
+      h+=`<span style="color:var(--text3);min-width:100px;font-size:11px;">${t.close_time||t.time||""}</span>`;
+      h+=`<span style="color:${c};font-family:var(--mono);margin-left:auto;">${sg}${t.pnl.toFixed(2)}</span>`;
+      h+=`</div>`;
     }
     h+=`</div></div>`;
   }
@@ -358,14 +373,29 @@ function filterTrades(containerId, symbol, btn) {
   if(!container) return;
   const rows = container.querySelectorAll(".trade-row");
   rows.forEach(r => {
-    if(symbol === "all" || r.getAttribute("data-sym") === symbol) {
-      r.style.display = "flex";
-    } else {
-      r.style.display = "none";
-    }
+    const matchSym = symbol === "all" || r.getAttribute("data-sym") === symbol;
+    const isHiddenByDate = r.getAttribute("data-hidden-date") === "true";
+    r.style.display = (matchSym && !isHiddenByDate) ? "flex" : "none";
   });
   btn.parentElement.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
+}
+
+function filterTradesByDate(containerId) {
+  const fromEl = document.getElementById(containerId+"_from");
+  const toEl = document.getElementById(containerId+"_to");
+  if(!fromEl || !toEl) return;
+  const from = fromEl.value;
+  const to = toEl.value;
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const rows = container.querySelectorAll(".trade-row");
+  rows.forEach(r => {
+    const date = r.getAttribute("data-date") || "";
+    const inRange = (!from || date >= from) && (!to || date <= to);
+    r.setAttribute("data-hidden-date", inRange ? "false" : "true");
+    r.style.display = inRange ? "flex" : "none";
+  });
 }
 
 // ── API Calls ──
