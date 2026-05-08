@@ -178,61 +178,39 @@ def kis_request(method, endpoint, tr_id, params=None, body=None):
         return None
 
 def fetch_kis_trade_history(cano, acnt_prdt_cd, start_date, end_date):
-    """한투 해외선물 체결내역 매칭하여 손익 계산"""
-    all_execs = []
+    """한투 해외선물 종목별 주간 손익 조회 (OTFM3118R 활용)"""
+    trades = []
     current = start_date
     while current < end_date:
-        chunk_end = min(current + timedelta(days=30), end_date)
-        params = {
-            "CANO": cano, "ACNT_PRDT_CD": acnt_prdt_cd,
-            "STRT_DT": current.strftime("%Y%m%d"), "END_DT": chunk_end.strftime("%Y%m%d"),
-            "FUOP_DVSN_CD": "01", "FM_PDGR_CD": "", "CRCY_CD": "USD",
-            "FM_ITEM_FTNG_YN": "N", "SLL_BUY_DVSN_CD": "%%",
-            "CTX_AREA_FK200": "", "CTX_AREA_NK200": "",
-        }
-        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=params)
+        week_end = min(current + timedelta(days=7), end_date)
+        start_str = current.strftime("%Y%m%d")
+        end_str = week_end.strftime("%Y%m%d")
+        params = {"CANO":cano,"ACNT_PRDT_CD":acnt_prdt_cd,"INQR_TERM_FROM_DT":start_str,"INQR_TERM_TO_DT":end_str,"CRCY_CD":"USD","WHOL_TRSL_YN":"N","FUOP_DVSN":"00","CTX_AREA_FK200":"","CTX_AREA_NK200":""}
+        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-period-ccld", "OTFM3118R", params=params)
         if data and data.get("rt_cd") == "0":
-            for t in data.get("output1", []):
-                sym = t.get("ovrs_futr_fx_pdno", "")
+            for item in data.get("output2", []):
+                sym = item.get("ovrs_futr_fx_pdno", "")
                 if not sym: continue
                 base = sym[:-3] if len(sym) > 3 else sym
                 display = PRODUCT_NAMES.get(base, base)
-                side_cd = t.get("sll_buy_dvsn_cd", "")
-                dt_raw = t.get("ccld_dtl_dtime", t.get("ord_dt", ""))
-                date_str = f"{dt_raw[:4]}-{dt_raw[4:6]}-{dt_raw[6:8]}" if len(dt_raw) >= 8 else ""
-                if len(dt_raw) >= 12:
-                    time_str = f"{dt_raw[4:6]}/{dt_raw[6:8]} {dt_raw[8:10]}:{dt_raw[10:12]}"
-                else:
-                    time_str = f"{dt_raw[4:6]}/{dt_raw[6:8]}" if len(dt_raw) >= 8 else dt_raw
-                qty = int(t.get("fm_ccld_qty", 0) or 0)
-                amt = float(t.get("fm_futr_ccld_amt", 0) or 0)
-                all_execs.append({"symbol": display, "side_cd": side_cd, "qty": qty, "amt": amt, "time": time_str, "date": date_str, "dt_raw": dt_raw})
-        current = chunk_end + timedelta(days=1)
+                net = float(item.get("fm_lqd_pfls_amt", 0) or 0)
+                fee = float(item.get("fm_fee", 0) or 0)
+                pnl = net - abs(fee)
+                buy_qty = int(item.get("fm_buy_qty", 0) or 0)
+                sll_qty = int(item.get("fm_sll_qty", 0) or 0)
+                if pnl == 0 and buy_qty == 0 and sll_qty == 0: continue
+                date_str = f"{start_str[:4]}-{start_str[4:6]}-{start_str[6:8]}"
+                period_label = f"{start_str[4:6]}/{start_str[6:8]}~{end_str[4:6]}/{end_str[6:8]}"
+                trades.append({
+                    "symbol": display, "pnl": round(pnl, 2),
+                    "time": period_label, "date": date_str,
+                    "direction": "롱" if buy_qty > 0 and sll_qty > 0 else ("매수" if buy_qty > 0 else "매도"),
+                    "qty": str(buy_qty + sll_qty),
+                })
+        current = week_end + timedelta(days=1)
         time.sleep(0.3)
-    # 종목별 매수/매도 매칭
-    all_execs.sort(key=lambda x: x["dt_raw"])
-    by_product = {}
-    for ex in all_execs:
-        by_product.setdefault(ex["symbol"], []).append(ex)
-    matched = []
-    for product, execs in by_product.items():
-        pending = None
-        for ex in execs:
-            if pending is None:
-                pending = ex
-            elif pending["side_cd"] != ex["side_cd"]:
-                if pending["side_cd"] == "02":  # 매수→매도 (롱)
-                    pnl = ex["amt"] - pending["amt"]; direction = "롱"
-                else:  # 매도→매수 (숏)
-                    pnl = pending["amt"] - ex["amt"]; direction = "숏"
-                matched.append({"symbol": product, "direction": direction, "qty": str(pending["qty"]),
-                    "pnl": round(pnl, 2), "open_time": pending["time"], "close_time": ex["time"],
-                    "time": ex["time"], "date": ex["date"]})
-                pending = None
-            else:
-                pending = ex
-    matched.sort(key=lambda x: x.get("date", ""), reverse=True)
-    return matched[:100]
+    trades.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return trades
 
 def fetch_kis_trades_data():
     """한투 해외선물 기간계좌손익 조회 (OTFM3118R)"""
