@@ -205,7 +205,7 @@ def fetch_kis_trade_history(cano, acnt_prdt_cd, start_date, end_date):
                     "symbol": display, "pnl": round(pnl, 2),
                     "time": period_label, "date": date_str,
                     "direction": "롱" if buy_qty > 0 and sll_qty > 0 else ("매수" if buy_qty > 0 else "매도"),
-                    "qty": str(buy_qty + sll_qty),
+                    "qty": str(max(buy_qty, sll_qty)),
                 })
         current = week_end + timedelta(days=1)
         time.sleep(0.3)
