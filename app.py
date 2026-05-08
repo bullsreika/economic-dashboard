@@ -497,6 +497,17 @@ async def kis_debug():
 async def get_status():
     return {"status":"running","binance":bool(BINANCE_API_KEY),"kis":bool(KIS_APP_KEY),"kis_account":KIS_ACCOUNT_NO,"market_cached":market_cache["ts"]>0,"news_count":len(news_cache["articles"])}
 
+@app.get("/api/binance-test")
+async def binance_test():
+    """바이낸스 income API 직접 테스트"""
+    if not BINANCE_API_KEY:
+        return {"error": "no key"}
+    start_ms = int(datetime(2026,3,1,tzinfo=timezone.utc).timestamp()*1000)
+    result = binance_signed_request("/fapi/v1/income", {"incomeType":"REALIZED_PNL","startTime":start_ms,"limit":5})
+    if result is None:
+        return {"error": "API call returned None - check logs"}
+    return {"count": len(result), "sample": result[:3] if result else "empty"}
+    
 @app.get("/api/myip")
 async def get_my_ip():
     """서버 외부 IP 확인"""
