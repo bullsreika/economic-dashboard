@@ -305,7 +305,7 @@ def fetch_kis_trades_data():
             if week_pnl != 0:
                 cumulative += week_pnl
                 equity_curve.append({
-                    "date": end_str[:4] + "-" + end_str[4:6] + "-" + end_str[6:8],
+                    "date": start_str[:4] + "-" + start_str[4:6] + "-" + start_str[6:8],
                     "daily_pnl": round(week_pnl, 2),
                     "cumulative": round(cumulative, 2),
                 })
