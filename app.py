@@ -279,8 +279,7 @@ def fetch_kis_trade_history(cano, acnt_prdt_cd, start_date, end_date):
                 amt = t.get("fm_futr_ccld_amt", "0")
                 all_trades.append({
                     "symbol": display, "side": side, "qty": qty,
-                    "amount": float(amt or 0), "time": dt_fmt,
-                    "pnl": float(amt or 0),
+                    "time": dt_fmt, "pnl": 0,
                 })
         current = chunk_end + timedelta(days=1)
         time.sleep(0.3)
