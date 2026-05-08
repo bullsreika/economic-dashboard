@@ -94,6 +94,11 @@
   .trade-row:last-child { border-bottom:none; }
   .no-data { padding:40px; text-align:center; color:var(--text3); font-size:13px; }
 
+  /* ── Filter Buttons ── */
+  .filter-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text2); padding:5px 14px; border-radius:6px; font-size:11px; cursor:pointer; font-family:var(--sans); transition:all 0.2s; }
+  .filter-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .filter-btn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+
   /* ── Monthly PnL Table ── */
   .monthly-table { width:100%; border-collapse:collapse; font-size:11px; font-family:var(--mono); }
   .monthly-table th { padding:6px 4px; color:var(--text2); font-weight:500; text-align:center; border-bottom:1px solid var(--border); font-size:10px; }
@@ -311,13 +316,20 @@ function renderTrading(data, containerId, periodId, chartId) {
     }
     h+=`</tbody></table></div>`;
   }
-  if((data.top_symbols&&data.top_symbols.length>0)||(data.recent_trades&&data.recent_trades.length>0)){
-    h+=`<div class="two-col">`;
-    h+=`<div class="col-box"><div class="col-box-title">종목별 성과 TOP</div>`;
-    if(data.top_symbols){for(const s of data.top_symbols.slice(0,5)){const c=s.pnl>=0?"var(--green)":"var(--red)";const sg=s.pnl>=0?"+":"";h+=`<div class="trade-row"><span style="font-family:var(--mono);font-weight:500;">${s.symbol}</span><span style="color:var(--text2);">${s.count}건·${s.win_rate}%</span><span style="color:${c};font-family:var(--mono);">${sg}${s.pnl.toFixed(2)}</span></div>`;}}
+  // 거래 내역 조회
+  if(data.recent_trades&&data.recent_trades.length>0){
+    const tid=containerId+"_trades";
+    const symbols=[...new Set(data.recent_trades.map(t=>t.symbol))];
+    h+=`<div class="col-box"><div class="col-box-title">거래 내역</div>`;
+    h+=`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">`;
+    h+=`<button class="filter-btn active" onclick="filterTrades('${tid}','all',this)">전체</button>`;
+    for(const s of symbols){h+=`<button class="filter-btn" onclick="filterTrades('${tid}','${s}',this)">${s}</button>`;}
     h+=`</div>`;
-    h+=`<div class="col-box"><div class="col-box-title">최근 거래</div>`;
-    if(data.recent_trades){for(const t of data.recent_trades.slice(0,10)){const c=t.pnl>=0?"var(--green)":"var(--red)";const sg=t.pnl>=0?"+":"";h+=`<div class="trade-row"><span style="font-family:var(--mono);font-weight:500;">${t.symbol}</span><span style="color:var(--text3);">${t.time}</span><span style="color:${c};font-family:var(--mono);">${sg}${t.pnl.toFixed(2)}</span></div>`;}}
+    h+=`<div id="${tid}">`;
+    for(const t of data.recent_trades){
+      const c=t.pnl>=0?"var(--green)":"var(--red)";const sg=t.pnl>=0?"+":"";
+      h+=`<div class="trade-row" data-sym="${t.symbol}"><span style="font-family:var(--mono);font-weight:500;min-width:120px;">${t.symbol}</span><span style="color:var(--text3);min-width:90px;">${t.time}</span><span style="color:${c};font-family:var(--mono);margin-left:auto;">${sg}${t.pnl.toFixed(2)}</span></div>`;
+    }
     h+=`</div></div>`;
   }
   document.getElementById(containerId).innerHTML=h;
@@ -336,6 +348,22 @@ function renderNews(articles,updatedAt){
   let h="";for(const a of articles){const cl=CAT_LABELS[a.category]||a.category;h+=`<div class="news-item" data-cat="${a.category}"><div class="news-meta"><span class="news-cat" data-cat="${a.category}">${cl}</span><span class="news-source">${a.source}</span></div><div class="news-title">${a.link?`<a href="${a.link}" target="_blank">${a.title}</a>`:a.title}</div>${a.summary?`<div class="news-summary">${a.summary.replace(/<[^>]+>/g,"")}</div>`:""}</div>`;}
   document.getElementById("newsContainer").innerHTML=h;
   if(updatedAt){const d=new Date(updatedAt);document.getElementById("newsUpdated").textContent=`갱신: ${d.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}`;}
+}
+
+// ── Trade Filter ──
+function filterTrades(containerId, symbol, btn) {
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const rows = container.querySelectorAll(".trade-row");
+  rows.forEach(r => {
+    if(symbol === "all" || r.getAttribute("data-sym") === symbol) {
+      r.style.display = "flex";
+    } else {
+      r.style.display = "none";
+    }
+  });
+  btn.parentElement.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
 }
 
 // ── API Calls ──
