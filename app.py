@@ -245,6 +245,47 @@ def kis_request(method, endpoint, tr_id, params=None, body=None):
             pass
         return None
 
+def fetch_kis_trade_history(cano, acnt_prdt_cd, start_date, end_date):
+    """한투 해외선물 개별 체결내역 조회 (OTFM3122R)"""
+    PRODUCT_NAMES = {"MES":"Micro S&P500", "MNQ":"Micro Nasdaq", "MGC":"Micro Gold", "NQ":"Nasdaq", "ES":"S&P500", "GC":"Gold"}
+    BUY_SELL = {"01":"매도", "02":"매수"}
+    all_trades = []
+    current = start_date
+    while current < end_date:
+        chunk_end = min(current + timedelta(days=30), end_date)
+        params = {
+            "CANO": cano, "ACNT_PRDT_CD": acnt_prdt_cd,
+            "STRT_DT": current.strftime("%Y%m%d"), "END_DT": chunk_end.strftime("%Y%m%d"),
+            "FUOP_DVSN_CD": "01", "FM_PDGR_CD": "", "CRCY_CD": "USD",
+            "FM_ITEM_FTNG_YN": "N", "SLL_BUY_DVSN_CD": "%%",
+            "CTX_AREA_FK200": "", "CTX_AREA_NK200": "",
+        }
+        data = kis_request("GET", "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld", "OTFM3122R", params=params)
+        if data and data.get("rt_cd") == "0":
+            for t in data.get("output1", []):
+                sym = t.get("ovrs_futr_fx_pdno", "")
+                if not sym: continue
+                base = sym[:-3] if len(sym) > 3 else sym
+                display = PRODUCT_NAMES.get(base, base)
+                side = BUY_SELL.get(t.get("sll_buy_dvsn_cd", ""), "")
+                dt_raw = t.get("ccld_dtl_dtime", t.get("ord_dt", ""))
+                if len(dt_raw) >= 12:
+                    dt_fmt = f"{dt_raw[4:6]}/{dt_raw[6:8]} {dt_raw[8:10]}:{dt_raw[10:12]}"
+                elif len(dt_raw) >= 8:
+                    dt_fmt = f"{dt_raw[4:6]}/{dt_raw[6:8]}"
+                else:
+                    dt_fmt = dt_raw
+                qty = t.get("fm_ccld_qty", "0")
+                amt = t.get("fm_futr_ccld_amt", "0")
+                all_trades.append({
+                    "symbol": display, "side": side, "qty": qty,
+                    "amount": float(amt or 0), "time": dt_fmt,
+                    "pnl": float(amt or 0),
+                })
+        current = chunk_end + timedelta(days=1)
+        time.sleep(0.3)
+    all_trades.sort(key=lambda x: x["time"], reverse=True)
+    return all_trades[:50]
 
 def fetch_kis_trades_data():
     """한투 해외선물 기간계좌손익 조회 (OTFM3118R)"""
@@ -371,7 +412,7 @@ def fetch_kis_trades_data():
         "max_drawdown": round(mdd, 2),
         "equity_curve": equity_curve,
         "top_symbols": top_symbols,
-        "recent_trades": [{"symbol": s, "pnl": round(v["pnl"], 2), "time": ""} for s, v in top[:10]],
+        "recent_trades": fetch_kis_trade_history(cano, acnt_prdt_cd, start_date, end_date),
         "period": f"2026.03.01 ~ {datetime.now(KST).strftime('%Y.%m.%d')}",
         "currency": "USD",
     }
