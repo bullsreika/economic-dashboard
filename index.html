@@ -94,6 +94,17 @@
   .trade-row:last-child { border-bottom:none; }
   .no-data { padding:40px; text-align:center; color:var(--text3); font-size:13px; }
 
+  /* ── Monthly PnL Table ── */
+  .monthly-table { width:100%; border-collapse:collapse; font-size:11px; font-family:var(--mono); }
+  .monthly-table th { padding:6px 4px; color:var(--text2); font-weight:500; text-align:center; border-bottom:1px solid var(--border); font-size:10px; }
+  .monthly-table td { padding:6px 4px; text-align:center; border-bottom:1px solid rgba(48,54,61,0.3); }
+  .monthly-table tr:last-child td { border-bottom:none; }
+  .monthly-table .yr { color:var(--text2); font-weight:500; text-align:left; }
+  .monthly-table .pos { color:var(--green); }
+  .monthly-table .neg { color:var(--red); }
+  .monthly-table .zero { color:var(--text3); }
+  .monthly-table .total { font-weight:700; }
+
   /* ── Footer ── */
   .footer { text-align:center; padding:16px 0 8px; font-size:11px; color:var(--text3); }
 
@@ -270,6 +281,35 @@ function renderTrading(data, containerId, periodId, chartId) {
   </div>`;
   if(data.equity_curve&&data.equity_curve.length>0){
     h+=`<div class="chart-box"><div class="chart-title">누적 수익 곡선 (${currency})</div><div style="position:relative;height:250px;"><canvas id="${chartId}"></canvas></div></div>`;
+  }
+  // Monthly PnL Table
+  if(data.equity_curve&&data.equity_curve.length>0){
+    const monthly={};
+    for(const d of data.equity_curve){
+      if(!d.date||d.date==="2026-03-01"&&d.daily_pnl===0) continue;
+      const parts=d.date.split("-");
+      const yr=parts[0], mo=parseInt(parts[1]);
+      if(!monthly[yr]) monthly[yr]={};
+      if(!monthly[yr][mo]) monthly[yr][mo]=0;
+      monthly[yr][mo]+=d.daily_pnl;
+    }
+    const months=["","1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+    h+=`<div class="chart-box"><div class="chart-title">월별 수익 (${currency})</div><table class="monthly-table"><thead><tr><th>연도</th>`;
+    for(let m=1;m<=12;m++) h+=`<th>${months[m]}</th>`;
+    h+=`<th class="total">합계</th></tr></thead><tbody>`;
+    for(const yr of Object.keys(monthly).sort()){
+      let yrTotal=0;
+      h+=`<tr><td class="yr">${yr}</td>`;
+      for(let m=1;m<=12;m++){
+        const v=monthly[yr][m]||0;
+        yrTotal+=v;
+        if(v===0) h+=`<td class="zero">-</td>`;
+        else{const cls=v>0?"pos":"neg";const sg=v>0?"+":"";h+=`<td class="${cls}">${sg}${v.toFixed(0)}</td>`;}
+      }
+      const tc=yrTotal>=0?"pos total":"neg total";const ts=yrTotal>=0?"+":"";
+      h+=`<td class="${tc}">${ts}${yrTotal.toFixed(0)}</td></tr>`;
+    }
+    h+=`</tbody></table></div>`;
   }
   if((data.top_symbols&&data.top_symbols.length>0)||(data.recent_trades&&data.recent_trades.length>0)){
     h+=`<div class="two-col">`;
